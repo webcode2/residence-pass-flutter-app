@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "95910982462",
+    "project_id": "residence-336b6",
+    "storage_bucket": "residence-336b6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:95910982462:android:d1a2e15e5997a1a893f26f",
+        "android_client_info": {
+          "package_name": "com.example.estate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmHTu9Yse7HlfOPQLBVJ0BqlyW9NHhpRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

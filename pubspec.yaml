@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.13+14
 
 environment:
   sdk: '>=2.19.2 <3.0.0'
@@ -35,6 +35,12 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
+  http: ^1.6.0
+  share_plus: ^10.1.4
+  flutter_secure_storage: ^10.3.4
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:
@@ -56,7 +62,22 @@ flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+        - asset: assets/fonts/Inter.ttf
+          weight: 700
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit.ttf
+        - asset: assets/fonts/Outfit.ttf
+          weight: 700
   uses-material-design: true
+  assets:
+    - assets/sos_alarm.wav
+    - assets/fonts/inter-OFL.txt
+    - assets/fonts/outfit-OFL.txt
 
   # To add assets to your application, add an assets section, like this:
 #  assets:
