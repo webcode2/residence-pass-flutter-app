@@ -30,7 +30,7 @@ void main() {
     await tester.enterText(fields.at(2), 'different');
     await tester.tap(find.text('Save password and continue'));
     await tester.pump();
-    expect(find.text('Use at least 12 characters'), findsOneWidget);
+    expect(find.text('Use at least 8 characters'), findsOneWidget);
     expect(find.text('Passwords do not match'), findsOneWidget);
     expect(find.text('Choose your own password'), findsOneWidget);
     expect(tester.takeException(), isNull);

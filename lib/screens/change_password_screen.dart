@@ -73,7 +73,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                             .headlineSmall),
                                     const SizedBox(height: 12),
                                     const Text(
-                                        'Replace the temporary password from your welcome email before accessing your estate. Use at least 12 characters.'),
+                                        'Replace the temporary password from your welcome email before accessing your estate. Use at least 8 characters.'),
                                     const SizedBox(height: 24),
                                     if (_error != null)
                                       Semantics(
@@ -106,8 +106,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                         decoration: const InputDecoration(
                                             labelText: 'New password'),
                                         validator: (v) => v == null ||
-                                                v.length < 12
-                                            ? 'Use at least 12 characters'
+                                                v.length < 8
+                                            ? 'Use at least 8 characters'
                                             : utf8.encode(v).length > 72
                                                 ? 'Use no more than 72 UTF-8 bytes'
                                                 : v == _current.text

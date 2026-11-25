@@ -183,7 +183,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                         decoration: authInput('Password', Icons.lock_outline,
                             helper:
-                                'Use at least 12 characters. Maximum 72 UTF-8 bytes.',
+                                'Use at least 8 characters. Maximum 72 UTF-8 bytes.',
                             suffix: IconButton(
                                 tooltip: _obscurePassword
                                     ? 'Show password'
@@ -197,8 +197,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           if (v == null || v.isEmpty) {
                             return 'Enter your password';
                           }
-                          if (v.length < 12 || utf8.encode(v).length > 72) {
-                            return 'Use at least 12 characters and no more than 72 UTF-8 bytes.';
+                          if (v.length < 8 || utf8.encode(v).length > 72) {
+                            return 'Use at least 8 characters and no more than 72 UTF-8 bytes.';
                           }
                           return null;
                         }),
