@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:estate/screens/incident_report_screen.dart';
+import 'package:estate/resident/screens/incident_report_screen.dart';
 
 void main() {
   testWidgets('validates, submits a report and refreshes the list',

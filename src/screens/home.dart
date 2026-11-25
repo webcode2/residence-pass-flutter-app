@@ -1,1 +1,1 @@
-export 'package:estate/screens/token_screen.dart';
+export 'package:estate/resident/screens/token_screen.dart';

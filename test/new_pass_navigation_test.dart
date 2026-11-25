@@ -1,4 +1,4 @@
-import 'package:estate/screens/app_scaffold.dart';
+import 'package:estate/resident/resident_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

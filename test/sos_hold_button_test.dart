@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:estate/widgets/sos_hold_button.dart';
+import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 
 void main() {
   testWidgets('SOS requires four seconds and sends only once', (tester) async {

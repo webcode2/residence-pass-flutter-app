@@ -1,5 +1,5 @@
-import 'package:estate/services/notification_inbox.dart';
-import 'package:estate/widgets/notification_bell.dart';
+import 'package:estate/shared/notifications/notification_inbox.dart';
+import 'package:estate/shared/ui/widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

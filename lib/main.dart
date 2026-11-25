@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'services/fcm_service.dart';
-import 'services/auth_service.dart';
-import 'services/alarm_service.dart';
-import 'screens/sos_alarm_screen.dart';
-import 'models/user_model.dart';
-import 'screens/app_scaffold.dart';
-import 'screens/chat_screen.dart';
-import 'screens/gatehouse/gatehouse_app_scaffold.dart';
-import 'screens/register_screen.dart';
-import 'screens/change_password_screen.dart';
-import 'screens/splash_screen.dart';
-import 'theme.dart';
-import 'widgets/biometric_gate.dart';
+import 'package:estate/firebase_options.dart';
+import 'package:estate/shared/notifications/fcm_service.dart';
+import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/shared/sos/alarm_service.dart';
+import 'package:estate/shared/sos/sos_alarm_screen.dart';
+import 'package:estate/shared/models/user_model.dart';
+import 'package:estate/resident/resident_app.dart';
+import 'package:estate/resident/screens/chat_screen.dart';
+import 'package:estate/gate/screens/gate_chat_thread_screen.dart';
+import 'package:estate/gate/gate_app.dart';
+import 'package:estate/shared/auth/screens/register_screen.dart';
+import 'package:estate/shared/auth/screens/change_password_screen.dart';
+import 'package:estate/shared/auth/screens/splash_screen.dart';
+import 'package:estate/shared/ui/theme.dart';
+import 'package:estate/shared/ui/widgets/biometric_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,12 +110,14 @@ class _SecurityTokenAppState extends State<SecurityTokenApp>
       final navigator = _navigatorKey.currentState;
       if (id == null || navigator == null) return;
       FCMService.instance.pendingChatThread.value = null;
+      // Each module opens its own chat screen; the two never share UI or state.
+      final inGate = AuthService.instance.activeViewModeNotifier.value ==
+              AppViewMode.gatehouse &&
+          AuthService.instance.currentUser!.isGuard;
       navigator.push(MaterialPageRoute<void>(
-          builder: (_) => ChatScreen(
-                threadId: id,
-                isGuard: AuthService.instance.currentUser!.roles
-                    .contains('security'),
-              )));
+          builder: (_) => inGate
+              ? GateChatThreadScreen(threadId: id, isGuard: true)
+              : ChatScreen(threadId: id, isGuard: false)));
     });
   }
 

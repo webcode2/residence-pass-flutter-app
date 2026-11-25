@@ -1,4 +1,4 @@
-import 'package:estate/services/biometric_service.dart';
+import 'package:estate/shared/auth/biometric_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 

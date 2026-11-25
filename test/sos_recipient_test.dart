@@ -1,7 +1,7 @@
-import 'package:estate/models/user_model.dart';
-import 'package:estate/services/auth_service.dart';
-import 'package:estate/services/fcm_service.dart';
-import 'package:estate/screens/sos_alarm_screen.dart';
+import 'package:estate/shared/models/user_model.dart';
+import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/shared/notifications/fcm_service.dart';
+import 'package:estate/shared/sos/sos_alarm_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

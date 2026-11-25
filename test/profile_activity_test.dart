@@ -1,9 +1,9 @@
-import 'package:estate/models/user_model.dart';
-import 'package:estate/models/visitor_pass.dart';
-import 'package:estate/services/auth_service.dart';
-import 'package:estate/screens/profile_editor_screen.dart';
-import 'package:estate/screens/profile_screen.dart';
-import 'package:estate/screens/settings_screen.dart';
+import 'package:estate/shared/models/user_model.dart';
+import 'package:estate/resident/models/visitor_pass.dart';
+import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/shared/account/profile_editor_screen.dart';
+import 'package:estate/resident/screens/profile_screen.dart';
+import 'package:estate/shared/account/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';

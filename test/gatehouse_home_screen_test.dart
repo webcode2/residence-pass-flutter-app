@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:estate/services/auth_service.dart';
-import 'package:estate/screens/gatehouse/gatehouse_home_screen.dart';
+import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/gate/screens/gatehouse_home_screen.dart';
 
 void main() {
   testWidgets(

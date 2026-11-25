@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:estate/models/user_model.dart';
-import 'package:estate/screens/change_password_screen.dart';
+import 'package:estate/shared/models/user_model.dart';
+import 'package:estate/shared/auth/screens/change_password_screen.dart';
 import 'package:estate/main.dart';
-import 'package:estate/services/auth_service.dart';
-import 'package:estate/screens/app_scaffold.dart';
+import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/resident/resident_app.dart';
 
 void main() {
   test('Server onboarding requirement survives user model serialization', () {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:estate/screens/login_screen.dart';
-import 'package:estate/screens/register_screen.dart';
-import 'package:estate/services/auth_service.dart';
+import 'package:estate/shared/auth/screens/login_screen.dart';
+import 'package:estate/shared/auth/screens/register_screen.dart';
+import 'package:estate/shared/auth/auth_service.dart';
 
 void main() {
   testWidgets('Sign-in requires an explicit estate App ID', (tester) async {

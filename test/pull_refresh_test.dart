@@ -1,6 +1,6 @@
-import 'package:estate/screens/chat_screen.dart';
-import 'package:estate/screens/visitors_screen.dart';
-import 'package:estate/screens/all_active_passes_screen.dart';
+import 'package:estate/resident/screens/chat_screen.dart';
+import 'package:estate/resident/screens/visitors_screen.dart';
+import 'package:estate/resident/screens/all_active_passes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'chat_screen_test.dart' show FakeChatService;

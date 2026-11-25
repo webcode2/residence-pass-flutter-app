@@ -1,6 +1,6 @@
-import 'package:estate/screens/chat_screen.dart';
-import 'package:estate/services/chat_service.dart';
-import 'package:estate/services/fcm_service.dart';
+import 'package:estate/resident/screens/chat_screen.dart';
+import 'package:estate/shared/chat/chat_service.dart';
+import 'package:estate/shared/notifications/fcm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

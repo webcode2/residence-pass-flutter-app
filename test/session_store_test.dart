@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:estate/models/user_model.dart';
-import 'package:estate/services/auth_service.dart';
-import 'package:estate/services/session_store.dart';
+import 'package:estate/shared/models/user_model.dart';
+import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/shared/auth/session_store.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 

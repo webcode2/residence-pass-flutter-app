@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:estate/screens/app_scaffold.dart';
-import 'package:estate/screens/profile_screen.dart';
+import 'package:estate/resident/resident_app.dart';
+import 'package:estate/resident/screens/profile_screen.dart';
 
 void main() {
   testWidgets('Resident navigation opens profile after billing removal',
