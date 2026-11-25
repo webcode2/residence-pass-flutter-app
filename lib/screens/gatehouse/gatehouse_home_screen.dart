@@ -422,7 +422,7 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            'EXPECTED VISITORS TODAY (${activePasses.length})',
+                            'VISITORS ON PREMISES (${activePasses.length})',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -431,15 +431,6 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Tap to autofill',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: secondaryTextColor,
                           ),
                         ),
                       ],
@@ -456,7 +447,7 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
                         ),
                         child: Center(
                           child: Text(
-                            'No pending passes awaiting entry right now',
+                            'No visitors on premises right now',
                             style: TextStyle(
                                 fontSize: 13, color: secondaryTextColor),
                           ),
@@ -519,38 +510,6 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
-                              // Code Badge
-                              GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() {
-                                    _codeCtrl.text = pass.code;
-                                  });
-                                  _triggerVerification(pass.code);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF0D9488)
-                                        .withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: const Color(0xFF0D9488)
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '#${pass.code}',
-                                    style: const TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w900,
-                                      color: Color(0xFF0D9488),
-                                    ),
-                                  ),
                                 ),
                               ),
                             ],

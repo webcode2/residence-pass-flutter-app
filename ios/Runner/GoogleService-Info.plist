@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyDB0ZQXpT-0FfIi0INUami9SdEM5j1K8mw</string>
+	<key>GCM_SENDER_ID</key>
+	<string>136222598323</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.elastrocloud.residence</string>
+	<key>PROJECT_ID</key>
+	<string>residence-elastrocloud</string>
+	<key>STORAGE_BUCKET</key>
+	<string>residence-elastrocloud.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:136222598323:ios:c7d5690bc3b41c3fa53cc6</string>
+</dict>
+</plist>

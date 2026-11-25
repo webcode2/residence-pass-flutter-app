@@ -48,12 +48,12 @@ class UserModel {
       final titles = <String>[];
       if (isResident) titles.add('Resident');
       if (isGuard) titles.add('Security');
-      if (isLandlord) titles.add('Host');
+      if (isLandlord) titles.add('Host / Property Owner');
       if (isCaretaker) titles.add('Caretaker');
       return titles.join(' • ');
     }
     if (isGuard) return 'Gatehouse Security';
-    if (isLandlord) return 'Host';
+    if (isLandlord) return 'Host / Property Owner';
     if (isCaretaker) return 'Estate Caretaker';
     return 'Resident';
   }

@@ -47,28 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAvPt99fLogvgOqB2z48ijWnnM0_PkE25c',
-    appId: '1:95910982462:web:62603924278e924893f26f',
-    messagingSenderId: '95910982462',
-    projectId: 'residence-336b6',
-    authDomain: 'residence-336b6.firebaseapp.com',
-    storageBucket: 'residence-336b6.firebasestorage.app',
+    apiKey: 'AIzaSyB2OxhFpStWOov3huY892tI4WdWZ3Xqkl8',
+    appId: '1:136222598323:web:10023928c703de96a53cc6',
+    messagingSenderId: '136222598323',
+    projectId: 'residence-elastrocloud',
+    authDomain: 'residence-elastrocloud.firebaseapp.com',
+    storageBucket: 'residence-elastrocloud.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDmHTu9Yse7HlfOPQLBVJ0BqlyW9NHhpRQ',
-    appId: '1:95910982462:android:d1a2e15e5997a1a893f26f',
-    messagingSenderId: '95910982462',
-    projectId: 'residence-336b6',
-    storageBucket: 'residence-336b6.firebasestorage.app',
+    apiKey: 'AIzaSyCpREyWdxAj1c9p5jeuTkhMzGDxVRp8OMQ',
+    appId: '1:136222598323:android:1035c271ae0e04c1a53cc6',
+    messagingSenderId: '136222598323',
+    projectId: 'residence-elastrocloud',
+    storageBucket: 'residence-elastrocloud.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDdAihyat5v5h1DSNjwevObhn47yvmv-Sw',
-    appId: '1:95910982462:ios:8125bd5523bb188f93f26f',
-    messagingSenderId: '95910982462',
-    projectId: 'residence-336b6',
-    storageBucket: 'residence-336b6.firebasestorage.app',
-    iosBundleId: 'com.example.estate',
+    apiKey: 'AIzaSyDB0ZQXpT-0FfIi0INUami9SdEM5j1K8mw',
+    appId: '1:136222598323:ios:c7d5690bc3b41c3fa53cc6',
+    messagingSenderId: '136222598323',
+    projectId: 'residence-elastrocloud',
+    storageBucket: 'residence-elastrocloud.firebasestorage.app',
+    iosBundleId: 'com.elastrocloud.residence',
   );
 }

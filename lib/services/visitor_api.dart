@@ -16,7 +16,7 @@ class VisitorApi {
       .timeout(const Duration(seconds: 15));
     final data = jsonDecode(response.body);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(data is Map && data['detail'] is String ? data['detail'] : 'Visitor request failed. Please retry.');
+      throw Exception(data is Map && data['detail'] is String ? data['detail'] : 'Request failed. Please retry.');
     }
     return data;
   }

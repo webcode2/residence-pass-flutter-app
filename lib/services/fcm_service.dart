@@ -190,6 +190,10 @@ class FCMService with WidgetsBindingObserver {
 
       final initial = await _messaging.getInitialMessage();
       if (initial != null) handleChatMessage(initial.data, opened: true);
+      // Live SOS rings natively (call-style) when the app is closed; "Respond" opens it here.
+      AlarmService.onAlertOpened((alert) => handleChatMessage(alert, opened: true));
+      final ringing = await AlarmService.takeLaunchAlert();
+      if (ringing != null) handleChatMessage(ringing, opened: true);
     } catch (e, stack) {
       _initialized = false;
       developer.log('Error initializing FCM service: $e',

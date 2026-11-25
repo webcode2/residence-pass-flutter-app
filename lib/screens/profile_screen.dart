@@ -1,5 +1,6 @@
 import 'household_screen.dart';
 import 'profile_editor_screen.dart';
+import 'incident_report_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme.dart';
@@ -503,6 +504,20 @@ class ProfileScreen extends StatelessWidget {
                                           const HouseholdScreen()))),
                           Divider(height: 1, indent: 68, color: dividerColor),
                         ],
+                        _buildMenuItem(
+                          icon: Icons.report_gmailerrorred_rounded,
+                          iconBgColor: const Color(0xFFFFF7ED),
+                          iconColor: const Color(0xFFC2410C),
+                          title: 'Report an incident',
+                          primaryTextColor: primaryTextColor,
+                          isDark: isDark,
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      const IncidentReportScreen())),
+                        ),
+                        Divider(height: 1, indent: 68, color: dividerColor),
                         _buildMenuItem(
                           icon: Icons.settings_rounded,
                           iconBgColor: const Color(0xFFF3E8FF),

@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "95910982462",
-    "project_id": "residence-336b6",
-    "storage_bucket": "residence-336b6.firebasestorage.app"
+    "project_number": "136222598323",
+    "project_id": "residence-elastrocloud",
+    "storage_bucket": "residence-elastrocloud.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:95910982462:android:d1a2e15e5997a1a893f26f",
+        "mobilesdk_app_id": "1:136222598323:android:1035c271ae0e04c1a53cc6",
         "android_client_info": {
-          "package_name": "com.example.estate"
+          "package_name": "com.elastrocloud.residence"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDmHTu9Yse7HlfOPQLBVJ0BqlyW9NHhpRQ"
+          "current_key": "AIzaSyCpREyWdxAj1c9p5jeuTkhMzGDxVRp8OMQ"
         }
       ],
       "services": {

@@ -1,13 +1,15 @@
-package com.example.estate
+package com.elastrocloud.residence
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Bundle
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -17,15 +19,39 @@ class MainActivity: FlutterFragmentActivity() {
     private var alarm: MediaPlayer? = null
     private val stopHandler = Handler(Looper.getMainLooper())
     private val stopDeadline = Runnable { stopAlarm() }
+    private var alarms: MethodChannel? = null
+    private var launchAlert: Map<String, String>? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        launchAlert = sosAlert(intent)
+        super.onCreate(savedInstanceState)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        sosAlert(intent)?.let { alarms?.invokeMethod("alertOpened", it) }
+    }
+
+    /** Respond from the ringing SOS: show over the lock screen, stop the ring, hand the alert to Flutter. */
+    private fun sosAlert(intent: Intent?): Map<String, String>? {
+        if (intent?.action != SosRinger.ACTION_OPEN) return null
+        @Suppress("UNCHECKED_CAST", "DEPRECATION")
+        val alert = intent.getSerializableExtra(SosRinger.EXTRA_ALERT) as? HashMap<String, String> ?: return null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) { setShowWhenLocked(true); setTurnScreenOn(true) }
+        SosRinger.cancel(this, alert["alert_id"])
+        return alert
+    }
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         createAlarmChannel()
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "residence/alarms").setMethodCallHandler { call, result ->
+        alarms = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "residence/alarms")
+        alarms?.setMethodCallHandler { call, result ->
             try {
                 when (call.method) {
                     "initialize" -> { createAlarmChannel(); result.success(null) }
                     "badge" -> { if ((call.arguments as? Int ?: 0) == 0) (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancelAll(); result.success(null) }
                     "stop" -> { stopAlarm(); result.success(null) }
+                    "takeLaunchAlert" -> { result.success(launchAlert); launchAlert = null }
                     "start" -> {
                         stopAlarm()
                         val bytes = call.arguments as ByteArray
@@ -59,6 +85,7 @@ class MainActivity: FlutterFragmentActivity() {
             channel.vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
             channel.setSound(Uri.parse("android.resource://$packageName/raw/sos_alarm"), AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
             manager.createNotificationChannel(channel)
+            SosRinger.ensureChannel(this)
         }
     }
     private fun stopAlarm() { stopHandler.removeCallbacks(stopDeadline); alarm?.stop(); alarm?.release(); alarm = null }
