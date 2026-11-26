@@ -25,7 +25,13 @@ void main() {
     expect(find.byType(SosHoldButton), findsNothing);
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
-    expect(find.text('Registered visitors'), findsOneWidget);
+    expect(find.text('Digital Gate Token'), findsOneWidget);
+    expect(find.text('ESTATE ACCESS TOOLS'), findsNothing);
+    expect(find.text('Token'), findsNWidgets(2));
+    expect(find.text('Visitors'), findsNWidgets(2));
+    expect(find.text('Report'), findsOneWidget);
+    expect(find.text('SOS'), findsOneWidget);
+    expect(find.text('Profile'), findsNothing);
     expect(find.byType(SosHoldButton), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());

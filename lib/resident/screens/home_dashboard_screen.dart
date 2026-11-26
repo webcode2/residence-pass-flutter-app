@@ -4,7 +4,6 @@ import 'package:estate/shared/ui/widgets/notification_bell.dart';
 import 'package:estate/shared/auth/auth_service.dart';
 import 'package:estate/resident/state/visitor_store.dart';
 import 'package:estate/resident/widgets/security_tips_carousel.dart';
-import 'package:estate/resident/screens/create_token_screen.dart';
 import 'package:estate/resident/screens/incident_report_screen.dart';
 import 'package:estate/shared/sos/sos_center_screen.dart';
 
@@ -176,29 +175,11 @@ class HomeDashboardScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Expanded(
+                          const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'ESTATE ACCESS TOOLS',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                const Text(
+                                Text(
                                   'Digital Gate Token',
                                   style: TextStyle(
                                     color: Colors.white,
@@ -206,8 +187,8 @@ class HomeDashboardScreen extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                const SecurityTipsCarousel(),
+                                SizedBox(height: 8),
+                                SecurityTipsCarousel(),
                               ],
                             ),
                           ),
@@ -244,32 +225,7 @@ class HomeDashboardScreen extends StatelessWidget {
                   Row(
                     children: [
                       _buildQuickAction(
-                        'New Token',
-                        Icons.person_add_alt_1_rounded,
-                        const Color(0xFF3B82F6),
-                        cardBg,
-                        primaryTextColor,
-                        isDark,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  CreateTokenScreen(isDark: isDark)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildQuickAction(
-                        'Registered visitors',
-                        Icons.groups_rounded,
-                        const Color(0xFF0EA5A4),
-                        cardBg,
-                        primaryTextColor,
-                        isDark,
-                        onTap: onNavigateToVisitors,
-                      ),
-                      const SizedBox(width: 12),
-                      _buildQuickAction(
-                        'My token',
+                        'Token',
                         Icons.qr_code_2_rounded,
                         TokenTheme.primaryMint,
                         cardBg,
@@ -277,27 +233,19 @@ class HomeDashboardScreen extends StatelessWidget {
                         isDark,
                         onTap: onNavigateToToken,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
+                      const SizedBox(width: 8),
                       _buildQuickAction(
-                        'SOS',
-                        Icons.sos_rounded,
-                        const Color(0xFFDC2626),
+                        'Visitors',
+                        Icons.groups_rounded,
+                        const Color(0xFF0EA5A4),
                         cardBg,
                         primaryTextColor,
                         isDark,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const SosCenterScreen()),
-                        ),
+                        onTap: onNavigateToVisitors,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       _buildQuickAction(
-                        'Incident report',
+                        'Report',
                         Icons.report_gmailerrorred_rounded,
                         const Color(0xFFEA580C),
                         cardBg,
@@ -310,15 +258,19 @@ class HomeDashboardScreen extends StatelessWidget {
                                   const IncidentReportScreen()),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       _buildQuickAction(
-                        'Profile',
-                        Icons.person_rounded,
-                        const Color(0xFF7C3AED),
+                        'SOS',
+                        Icons.sos_rounded,
+                        const Color(0xFFDC2626),
                         cardBg,
                         primaryTextColor,
                         isDark,
-                        onTap: onNavigateToProfile,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const SosCenterScreen()),
+                        ),
                       ),
                     ],
                   ),
@@ -423,39 +375,42 @@ class HomeDashboardScreen extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             decoration: BoxDecoration(
               color: cardBg,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.09),
-                  blurRadius: 8,
+                  blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: color, size: 22),
+                  child: Icon(icon, color: color, size: 18),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: textColor,
                   ),
                   textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
