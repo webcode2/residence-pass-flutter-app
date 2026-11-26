@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:estate/resident/resident_app.dart';
 import 'package:estate/resident/screens/profile_screen.dart';
+import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 
 void main() {
   testWidgets('Resident navigation opens profile after billing removal',
@@ -14,15 +15,18 @@ void main() {
     }
     expect(find.byTooltip('Contact gatehouse'), findsNothing);
     expect(find.byTooltip('New Pass'), findsOneWidget);
+    expect(find.byType(SosHoldButton), findsNothing);
     expect(find.text('Bills'), findsNothing);
     expect(find.text('Pay Dues'), findsNothing);
     await tester.tap(find.text('User'));
     await tester.pumpAndSettle();
     expect(find.byType(ProfileScreen), findsOneWidget);
     expect(find.text('Residence Dues & Invoices'), findsNothing);
+    expect(find.byType(SosHoldButton), findsNothing);
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
     expect(find.text('Invite Guest'), findsOneWidget);
+    expect(find.byType(SosHoldButton), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

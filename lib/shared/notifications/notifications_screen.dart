@@ -74,7 +74,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   : Icons.notifications_active_outlined,
                               color: item['is_read'] == true
                                   ? null
-                                  : TokenTheme.primaryMint),
+                                  : Theme.of(context).brightness == Brightness.dark
+                                       ? TokenTheme.darkAccent
+                                       : TokenTheme.primaryMint),
                           title: Text(item['title'] as String,
                               style: TextStyle(
                                   fontWeight: item['is_read'] == true

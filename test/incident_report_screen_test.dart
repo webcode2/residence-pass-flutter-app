@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:estate/resident/screens/incident_report_screen.dart';
+import 'package:estate/shared/ui/widgets/incident_report_widget.dart';
+import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 
 void main() {
   testWidgets('validates, submits a report and refreshes the list',
@@ -80,5 +82,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(
         find.text('You have filed several reports recently.'), findsOneWidget);
+  });
+
+  testWidgets('top-right action opens the dedicated SOS screen', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: IncidentReportScreen(
+      load: () async => [],
+      submit: (_) async {},
+    )));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('SOS & emergencies'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('SOS & emergencies'), findsOneWidget);
+    expect(find.byType(SosHoldButton), findsOneWidget);
+    expect(find.byType(IncidentReportWidget), findsNothing);
   });
 }

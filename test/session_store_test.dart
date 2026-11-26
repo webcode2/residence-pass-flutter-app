@@ -41,6 +41,25 @@ void main() {
     auth.logout();
     expect(await store.read('http://127.0.0.1:1'), isNull);
   });
+  test('a guard-only legacy session cannot open the resident view', () async {
+    final store = SessionStore();
+    final saved = session(DateTime.now().add(const Duration(days: 1)));
+    final user = Map<String, dynamic>.from(saved['user'] as Map)
+      ..['roles'] = ['security']
+      ..['must_change_password'] = true;
+    await store.save({...saved, 'user': user});
+    final auth = AuthService.isolated(store: store)
+      ..setBaseUrl('http://127.0.0.1:1');
+    await auth.restoreSession();
+    expect(auth.activeViewMode, AppViewMode.gatehouse);
+    auth.switchActiveViewMode(AppViewMode.resident);
+    expect(auth.activeViewMode, AppViewMode.gatehouse);
+    auth.toggleActiveViewMode();
+    expect(auth.activeViewMode, AppViewMode.gatehouse);
+    auth.logout();
+    await store.read(auth.baseUrl);
+  });
+
   test('expired, corrupt, and wrong-estate sessions cannot restore', () async {
     final store = SessionStore();
     await store

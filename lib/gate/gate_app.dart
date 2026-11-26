@@ -1,11 +1,12 @@
-import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 import 'package:flutter/material.dart';
-import 'package:estate/gate/state/gatehouse_store.dart';
-import 'package:estate/shared/chat/chat_service.dart';
-import 'package:estate/gate/screens/gatehouse_home_screen.dart';
 import 'package:estate/gate/screens/gatehouse_chat_screen.dart';
 import 'package:estate/gate/screens/gatehouse_history_screen.dart';
+import 'package:estate/gate/screens/gatehouse_home_screen.dart';
 import 'package:estate/gate/screens/gatehouse_officers_screen.dart';
+import 'package:estate/gate/ui/gate_style.dart';
+import 'package:estate/shared/ui/theme.dart';
+import 'package:estate/gate/ui/gate_drawer.dart';
+import 'package:estate/shared/chat/chat_service.dart';
 
 class GatehouseAppScaffold extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -24,145 +25,97 @@ class GatehouseAppScaffold extends StatefulWidget {
 class _GatehouseAppScaffoldState extends State<GatehouseAppScaffold> {
   int _selectedIndex = 0;
 
+  void _selectTab(int index) {
+    FocusScope.of(context).unfocus();
+    setState(() => _selectedIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final navBg = isDark ? const Color(0xFF111827) : Colors.white;
-    const activeColor = Color(0xFF0D9488); // Tactical Gatehouse Emerald
-    final unselectedColor =
-        isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
-    final borderColor =
-        isDark ? const Color(0xFF26334D) : const Color(0xFFE2E8F0);
-
-    final List<Widget> screens = [
-      GatehouseHomeScreen(isDark: isDark),
-      GatehouseChatScreen(isDark: isDark),
-      GatehouseHistoryScreen(isDark: isDark),
-      GatehouseOfficersScreen(
-        isDark: isDark,
-        onToggleTheme: widget.onToggleTheme,
+    final palette = GatePalette.of(context);
+    return Scaffold(
+      drawer:
+          GateDrawer(selectedIndex: _selectedIndex, onSelectTab: _selectTab),
+      drawerEnableOpenDragGesture: false,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          GatehouseHomeScreen(isDark: palette.dark),
+          GatehouseChatScreen(isDark: palette.dark),
+          GatehouseHistoryScreen(isDark: palette.dark),
+          GatehouseOfficersScreen(
+            isDark: palette.dark,
+            onToggleTheme: widget.onToggleTheme,
+          ),
+        ],
       ),
-    ];
-
-    return AnimatedBuilder(
-      animation:
-          Listenable.merge([GatehouseStore.instance, ChatService.guardUnread]),
-      builder: (context, _) {
-        final unreadChats = ChatService.guardUnread.value;
-
-        return Scaffold(
-          floatingActionButton: const SosHoldButton(),
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: screens,
-          ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: navBg,
-              border: Border(
-                top: BorderSide(
-                  color: borderColor,
-                  width: 1,
-                ),
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: palette.line)),
+        ),
+        child: ValueListenableBuilder<int>(
+          valueListenable: ChatService.guardUnread,
+          builder: (context, unread, _) {
+            Widget chatIcon(IconData icon) => Badge.count(
+                  count: unread,
+                  isLabelVisible: unread > 0,
+                  backgroundColor: palette.action,
+                  textColor: palette.dark ? TokenTheme.darkBg : Colors.white,
+                  child: Icon(icon),
+                );
+            return NavigationBarTheme(
+              data: NavigationBarThemeData(
+                labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                  final selected = states.contains(WidgetState.selected);
+                  return TextStyle(
+                    color: selected ? palette.ink : palette.muted,
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  );
+                }),
+                iconTheme: WidgetStateProperty.resolveWith((states) {
+                  return IconThemeData(
+                    color: states.contains(WidgetState.selected)
+                        ? palette.accent
+                        : palette.muted,
+                  );
+                }),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, -3),
-                ),
-              ],
-            ),
-            child: BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: (index) => setState(() => _selectedIndex = index),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              type: BottomNavigationBarType.fixed,
-              selectedItemColor: activeColor,
-              unselectedItemColor: unselectedColor,
-              selectedFontSize: 11,
-              unselectedFontSize: 11,
-              selectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w800, letterSpacing: 0.2),
-              unselectedLabelStyle:
-                  const TextStyle(fontWeight: FontWeight.w600),
-              items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.shield_outlined),
-                  activeIcon: Icon(Icons.verified_user_rounded),
-                  label: 'Verifier',
-                ),
-                BottomNavigationBarItem(
-                  icon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.chat_bubble_outline_rounded),
-                      if (unreadChats > 0)
-                        Positioned(
-                          right: -6,
-                          top: -4,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '$unreadChats',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+              child: NavigationBar(
+                height: 68,
+                elevation: 0,
+                animationDuration: Duration.zero,
+                backgroundColor: palette.surface,
+                surfaceTintColor: Colors.transparent,
+                indicatorColor: palette.tint,
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: _selectTab,
+                destinations: [
+                  const NavigationDestination(
+                    icon: Icon(Icons.shield_outlined),
+                    selectedIcon: Icon(Icons.verified_user_rounded),
+                    label: 'Home',
                   ),
-                  activeIcon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.chat_bubble_rounded),
-                      if (unreadChats > 0)
-                        Positioned(
-                          right: -6,
-                          top: -4,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '$unreadChats',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                  NavigationDestination(
+                    icon: chatIcon(Icons.chat_bubble_outline_rounded),
+                    selectedIcon: chatIcon(Icons.chat_bubble_rounded),
+                    label: 'Chat',
                   ),
-                  label: 'Chat',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.history_rounded),
-                  activeIcon: Icon(Icons.manage_history_rounded),
-                  label: 'History',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.badge_outlined),
-                  activeIcon: Icon(Icons.badge_rounded),
-                  label: 'Officers',
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+                  const NavigationDestination(
+                    icon: Icon(Icons.history_rounded),
+                    label: 'History',
+                  ),
+                  const NavigationDestination(
+                    icon: Icon(Icons.badge_outlined),
+                    selectedIcon: Icon(Icons.badge_rounded),
+                    label: 'Officers',
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

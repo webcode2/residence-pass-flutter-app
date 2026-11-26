@@ -1,4 +1,3 @@
-import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 import 'package:flutter/material.dart';
 import 'package:estate/shared/ui/theme.dart';
 import 'package:estate/resident/state/visitor_store.dart';
@@ -54,10 +53,11 @@ class _AppScaffoldState extends State<AppScaffold> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final navBg = isDark ? const Color(0xFF131821) : Colors.white;
-    const activeColor = TokenTheme.primaryMintDark;
+    final navBg = isDark ? TokenTheme.darkSurface : Colors.white;
+    final activeColor =
+        isDark ? TokenTheme.darkAccent : TokenTheme.primaryMintDark;
     final unselectedColor =
-        isDark ? const Color(0xFF6E7681) : const Color(0xFF94A3B8);
+        isDark ? TokenTheme.darkTextSecondary : const Color(0xFF94A3B8);
 
     final List<Widget> screens = [
       HomeDashboardScreen(
@@ -93,7 +93,7 @@ class _AppScaffoldState extends State<AppScaffold> with WidgetsBindingObserver {
               icon: const Icon(Icons.add),
               label: const Text('New Pass'),
             )
-          : const SosHoldButton(),
+          : null,
       body: IndexedStack(
         index: _selectedIndex,
         children: screens,
@@ -103,13 +103,13 @@ class _AppScaffoldState extends State<AppScaffold> with WidgetsBindingObserver {
           color: navBg,
           border: Border(
             top: BorderSide(
-              color: isDark ? const Color(0xFF21262D) : const Color(0xFFE2E8F0),
+              color: isDark ? TokenTheme.darkBorder : const Color(0xFFE2E8F0),
               width: 1,
             ),
           ),
-          boxShadow: [
+          boxShadow: isDark ? null : [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, -3),
             ),

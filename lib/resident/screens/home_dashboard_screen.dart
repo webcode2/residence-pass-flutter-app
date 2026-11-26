@@ -3,7 +3,6 @@ import 'package:estate/shared/ui/theme.dart';
 import 'package:estate/shared/ui/widgets/notification_bell.dart';
 import 'package:estate/shared/auth/auth_service.dart';
 import 'package:estate/resident/state/visitor_store.dart';
-import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 import 'package:estate/resident/widgets/security_tips_carousel.dart';
 import 'package:estate/resident/screens/create_token_screen.dart';
 
@@ -256,8 +255,6 @@ class HomeDashboardScreen extends StatelessWidget {
                                   CreateTokenScreen(isDark: isDark)),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const Expanded(child: SosHoldButton()),
                     ],
                   ),
 

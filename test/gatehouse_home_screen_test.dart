@@ -1,130 +1,159 @@
+import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/gate/gate_app.dart';
+import 'package:estate/gate/screens/gatehouse_home_screen.dart';
+import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:estate/shared/auth/auth_service.dart';
-import 'package:estate/gate/screens/gatehouse_home_screen.dart';
 
 void main() {
-  testWidgets(
-      'GatehouseHomeScreen renders without RenderFlex overflow on small screen',
-      (WidgetTester tester) async {
-    // Set a compact screen size (width: 360, height: 640)
-    tester.view.physicalSize = const Size(360, 640);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: GatehouseHomeScreen(isDark: false),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Verify key UI elements render
-    expect(find.text('VISITOR TOKEN VERIFIER'), findsOneWidget);
-    expect(find.text('PASTE'), findsOneWidget);
-    expect(find.text('Tap boxes to open device keyboard'), findsOneWidget);
-
-    // The verifier reflects the current estate setting.
-    expect(find.text('•'), findsNWidgets(AuthService.instance.tokenCodeLength));
-
-    // No overflow should occur
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-      'GatehouseHomeScreen supports entering alphanumeric token with system keyboard',
-      (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(360, 640);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: GatehouseHomeScreen(isDark: false),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Enter alphanumeric token directly into the TextField
-    final textFieldFinder = find.byType(TextField);
-    expect(textFieldFinder, findsOneWidget);
-
-    // A sample code must never authorize offline access.
-    await tester.enterText(textFieldFinder, '4920CD');
-    await tester.pumpAndSettle(const Duration(milliseconds: 300));
-
-    // Verify digits and letters appear in the code slots
-    expect(find.text('4'), findsWidgets);
-    expect(find.text('9'), findsWidgets);
-    expect(find.text('2'), findsWidgets);
-    expect(find.text('0'), findsWidgets);
-    expect(find.text('C'), findsWidgets);
-    expect(find.text('D'), findsWidgets);
-
-    expect(find.text('AUTHORIZED PASS'), findsNothing);
-    expect(find.text('OPEN GATE & CHECK IN'), findsNothing);
-    await tester.tap(find.text('VERIFY TOKEN'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Sign in to verify access'), findsOneWidget);
-
-    // No overflow should occur
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets(
-      'open guard screen reacts to settings while preserving longer issued codes',
+  testWidgets('guard home puts compact activity counts before guest token',
       (tester) async {
-    final settings = AuthService.instance.tokenCodeLengthNotifier;
-    final saved = settings.value;
-    addTearDown(() => settings.value = saved);
-    settings.value = 6;
-    await tester.pumpWidget(
-        const MaterialApp(home: GatehouseHomeScreen(isDark: false)));
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: const TextScaler.linear(1.4)),
+        child: child!,
+      ),
+      home: GatehouseAppScaffold(isDark: false, onToggleTheme: () {}),
+    ));
     await tester.pumpAndSettle();
-    expect(find.text('•'), findsNWidgets(6));
-    settings.value = 4;
-    await tester.pumpAndSettle();
-    expect(find.text('•'), findsNWidgets(4));
-    await tester.enterText(find.byType(TextField), '1234567A');
-    await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        '1234567A');
-    expect(find.text('A'), findsWidgets);
+
+    final heading = find.text('Guest token');
+    expect(heading, findsOneWidget);
+    for (final label in ['On site', 'Entries today', 'Exits today']) {
+      expect(tester.getBottomLeft(find.text(label)).dy,
+          lessThan(tester.getTopLeft(heading).dy));
+    }
+    expect(find.text('PASTE'), findsNothing);
+    expect(find.widgetWithText(NavigationDestination, 'Home'), findsOneWidget);
+    expect(find.byType(SosHoldButton), findsNothing);
     expect(tester.takeException(), isNull);
   });
-  testWidgets(
-      'default boxes stay fixed until input exceeds the estate length and shrink back on clear',
+
+  testWidgets('Home uses the active estate name and keeps header controls',
       (tester) async {
-    tester.view.physicalSize = const Size(320, 640);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final settings = AuthService.instance.tokenCodeLengthNotifier;
-    final saved = settings.value;
-    settings.value = 6;
-    addTearDown(() => settings.value = saved);
-    await tester.pumpWidget(
-        const MaterialApp(home: GatehouseHomeScreen(isDark: false)));
+    final estateName = AuthService.instance.estateNameNotifier;
+    addTearDown(() => estateName.value = null);
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(MaterialApp(
+      home: GatehouseAppScaffold(isDark: false, onToggleTheme: () {}),
+    ));
     await tester.pumpAndSettle();
-    Finder slots() => find.byWidgetPredicate((widget) =>
-        widget.key is ValueKey<String> &&
-        (widget.key! as ValueKey<String>)
-            .value
-            .startsWith('verification-code-slot-'));
-    expect(slots(), findsNWidgets(6));
+
+    final appBar = find.byType(AppBar).hitTestable();
+    expect(find.descendant(of: appBar, matching: find.text('Home')),
+        findsOneWidget);
+    const longName = 'Cedar Grove Estate and Community Gardens East Entrance';
+    estateName.value = longName;
+    await tester.pumpAndSettle();
+
+    final title = tester.widget<Text>(
+        find.descendant(of: appBar, matching: find.text(longName)));
+    expect(title.maxLines, 1);
+    expect(title.overflow, TextOverflow.ellipsis);
+    expect(find.byTooltip('Open guard menu').hitTestable(), findsOneWidget);
+    expect(find.byTooltip('Notifications').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('guest token preserves leading zeros, case and longer codes',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: GatehouseHomeScreen(isDark: false),
+    ));
+    await tester.pumpAndSettle();
+
     final field = find.byType(TextField);
-    await tester.enterText(field, '12345A');
+    final input = tester.widget<TextField>(field);
+    expect(input.keyboardType, TextInputType.emailAddress);
+    expect(input.textCapitalization, TextCapitalization.none);
+    expect(input.autocorrect, isFalse);
+
+    final boxes = find.byWidgetPredicate((widget) {
+      final key = widget.key;
+      return key is ValueKey<String> &&
+          key.value.startsWith('guest-token-box-');
+    });
+    expect(boxes, findsNWidgets(4));
+    expect(tester.getCenter(boxes.first).dx + tester.getCenter(boxes.last).dx,
+        closeTo(2 * tester.getCenter(field).dx, 0.1));
+
+    for (final token in ['00a', '00a7', '00a74', '00a742', '00a74', '00a7']) {
+      await tester.enterText(field, token);
+      await tester.pumpAndSettle();
+      expect(boxes, findsNWidgets(token.length.clamp(4, 6)));
+      expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+          token.length >= 4 ? isNotNull : isNull);
+      expect(find.textContaining('Sign in to verify access'), findsNothing);
+    }
+
+    await tester.enterText(field, '00Z12345');
     await tester.pumpAndSettle();
-    expect(slots(), findsNWidgets(6));
-    await tester.enterText(field, '123456A');
-    await tester.pumpAndSettle();
-    expect(slots(), findsNWidgets(7));
-    await tester.enterText(field, '12345678901A');
-    await tester.pumpAndSettle();
-    expect(slots(), findsNWidgets(12));
-    expect(tester.widget<TextField>(field).controller!.text, '12345678901A');
-    expect(tester.takeException(), isNull);
+    expect(input.controller!.text, '00Z12345');
+    expect(boxes, findsNWidgets(8));
+
+    // Try adding a character at the end, then in the middle of the full field.
+    for (final offset in [8, 3]) {
+      const code = '00Z12345';
+      tester.testTextInput.updateEditingValue(TextEditingValue(
+          text: code, selection: TextSelection.collapsed(offset: offset)));
+      await tester.pump();
+      tester.testTextInput.updateEditingValue(TextEditingValue(
+        text: code.replaceRange(offset, offset, '9'),
+        selection: TextSelection.collapsed(offset: offset + 1),
+      ));
+      await tester.pump();
+      expect(input.controller!.text, code);
+      expect(input.controller!.selection.baseOffset, offset);
+    }
+
+    tester.testTextInput.updateEditingValue(const TextEditingValue(
+        text: '00Z2345', selection: TextSelection.collapsed(offset: 3)));
+    await tester.pump();
+    expect(input.controller!.text, '00Z2345');
+    expect(boxes, findsNWidgets(7));
+
+    // Pasting into the empty field applies the same filter and limit.
     await tester.enterText(field, '');
+    await tester.enterText(field, '00z-12345678901234567890');
     await tester.pumpAndSettle();
-    expect(slots(), findsNWidgets(6));
+    expect(input.controller!.text, '00z12345');
+    expect(boxes, findsNWidgets(8));
+    expect(find.textContaining('Sign in to verify access'), findsNothing);
+
+    await tester.enterText(field, '00a-7');
+    await tester.pumpAndSettle();
+    expect(input.controller!.text, '00a7');
+
+    await tester.tap(find.byTooltip('Clear token'));
+    await tester.pumpAndSettle();
+    expect(input.controller!.text, isEmpty);
+    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull);
+  });
+
+  testWidgets('Done leaves the token unsubmitted and Verify shows error inline',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: GatehouseHomeScreen(isDark: false),
+    ));
+    final field = find.byType(TextField);
+    await tester.enterText(field, '00a742');
+    await tester.pumpAndSettle();
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    final error = find.textContaining('Sign in to verify access');
+    expect(error, findsNothing);
+
+    await tester.tap(find.text('Verify token'));
+    await tester.pumpAndSettle();
+    expect(error, findsOneWidget);
+    expect(tester.widget<TextField>(field).controller!.text, '00a742');
+    expect(tester.takeException(), isNull);
   });
 }

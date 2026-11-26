@@ -59,13 +59,7 @@ class TokenBoxes extends StatelessWidget {
           width: 1.8,
         ),
         boxShadow: isDark
-            ? [
-                BoxShadow(
-                  color: TokenTheme.primaryMint.withValues(alpha: 0.12),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ]
+            ? null
             : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),

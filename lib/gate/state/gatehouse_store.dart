@@ -1,3 +1,4 @@
+import 'package:estate/gate/state/guest_token_verification.dart';
 import 'package:flutter/foundation.dart';
 import 'package:estate/gate/models/gate_log_model.dart';
 import 'package:estate/gate/models/gate_chat_model.dart';
@@ -63,11 +64,14 @@ class GatehouseStore extends ChangeNotifier {
       final next = user == null ? null : '${user.appId}.${user.id}';
       if (identity == next) return;
       identity = next;
+      _guestTokens.clear();
       _logs.clear();
       historyError = null;
       notifyListeners();
     });
   }
+
+  final _guestTokens = GuestTokenVerification();
 
   String _currentGuardStatus = 'On Duty'; // "On Duty", "On Break", "Off Duty"
   String _currentGatePost = 'Gatehouse';
@@ -157,10 +161,15 @@ class GatehouseStore extends ChangeNotifier {
 
   Future<VerificationResult> verifyAccess(String code) async {
     if (!VisitorApi.isLive) {
-      throw StateError('Sign in to verify access with the estate server.');
+      throw const VisitorApiError(
+          'Sign in to verify access with the estate server.');
     }
-    final row = await VisitorApi.request(
-        'verify/token/${Uri.encodeComponent(code.trim().toUpperCase())}');
+    final row = await _guestTokens.verify(
+      code,
+      (normalized) => VisitorApi.request(
+        'verify/token/${Uri.encodeComponent(normalized)}',
+      ),
+    );
     final exit = row['action'] == 'book_out';
     await GateVisitorStore.instance.refresh();
     notifyListeners();

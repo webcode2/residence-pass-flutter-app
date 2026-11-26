@@ -31,7 +31,7 @@ class AuthLayout extends StatelessWidget {
                 Row(children: [
                   Icon(Icons.shield_outlined,
                       color: dark
-                          ? TokenTheme.primaryMintLight
+                          ? TokenTheme.darkAccent
                           : TokenTheme.primaryMintDark,
                       size: 28),
                   const SizedBox(width: 8),

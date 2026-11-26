@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:estate/shared/ui/theme.dart';
 import 'package:estate/resident/data/security_tips_service.dart';
 
 class SecurityTipsCarousel extends StatefulWidget {
@@ -57,6 +58,7 @@ class _SecurityTipsCarouselState extends State<SecurityTipsCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: SecurityTipsService.instance,
       builder: (context, _) {
@@ -103,7 +105,9 @@ class _SecurityTipsCarouselState extends State<SecurityTipsCarousel> {
                   child: Icon(
                     _getTipIcon(currentTip.icon),
                     size: 14,
-                    color: const Color(0xFFB8F532),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? TokenTheme.darkAccent
+                        : const Color(0xFFB8F532),
                   ),
                 ),
                 Expanded(
@@ -117,8 +121,10 @@ class _SecurityTipsCarouselState extends State<SecurityTipsCarousel> {
                       children: [
                         TextSpan(
                           text: '${currentTip.category}: ',
-                          style: const TextStyle(
-                            color: Color(0xFFB8F532),
+                          style: TextStyle(
+                            color: isDark
+                                ? TokenTheme.darkAccent
+                                : const Color(0xFFB8F532),
                             fontWeight: FontWeight.w700,
                           ),
                         ),

@@ -30,27 +30,48 @@ void main() {
       expect(request.url.path, '/api/v1/estates/mobile-settings');
       expect(request.headers['X-App-Id'], 'ESTATE-ONE');
       return http.Response(
-          jsonEncode({'app_id': 'ESTATE-ONE', 'token_code_length': 4}), 200);
+          jsonEncode({
+            'app_id': 'ESTATE-ONE',
+            'token_code_length': 4,
+            'estate_name': ' Cedar Grove Estate ',
+          }),
+          200);
     }));
     var changes = 0;
     auth.tokenCodeLengthNotifier.addListener(() => changes++);
     await auth.refreshEstateSettings();
     expect(auth.tokenCodeLength, 4);
+    expect(auth.estateNameNotifier.value, 'Cedar Grove Estate');
+    expect((await SessionStore().read(auth.baseUrl))?['estate_name'],
+        'Cedar Grove Estate');
+    final restored = AuthService.isolated(store: SessionStore())
+      ..setBaseUrl(auth.baseUrl);
+    await restored.restoreSession();
+    expect(restored.estateNameNotifier.value, 'Cedar Grove Estate');
+    restored.setAppId('OTHER');
+    expect(restored.estateNameNotifier.value, isNull);
     expect(changes, 1);
     expect(calls, 1);
     expect((await SessionStore().read(auth.baseUrl))?['code_length'], 4);
+    restored.logout();
   });
   test('offline or foreign-estate responses retain saved settings', () async {
     var calls = 0;
     final auth = await authWith(MockClient((request) async {
       if (calls++ == 0) throw http.ClientException('offline');
       return http.Response(
-          jsonEncode({'app_id': 'OTHER', 'token_code_length': 4}), 200);
+          jsonEncode({
+            'app_id': 'OTHER',
+            'token_code_length': 4,
+            'estate_name': 'Other Estate'
+          }),
+          200);
     }));
     await auth.refreshEstateSettings();
     expect(auth.tokenCodeLength, 8);
     await auth.refreshEstateSettings();
     expect(auth.tokenCodeLength, 8);
+    expect(auth.estateNameNotifier.value, isNull);
   });
   test('FCM invalidation during a fetch schedules a fresh fetch', () async {
     var calls = 0;

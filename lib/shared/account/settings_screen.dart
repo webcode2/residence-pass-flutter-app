@@ -92,13 +92,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.09),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.09),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
               ),
               child: Material(
                 color: Colors.transparent,
@@ -108,14 +110,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: TokenTheme.primaryMint.withValues(alpha: 0.15),
+                      color: isDark ? TokenTheme.darkTint(0.18) : TokenTheme.primaryMint.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       isDark
                           ? Icons.dark_mode_rounded
                           : Icons.light_mode_rounded,
-                      color: TokenTheme.primaryMintDark,
+                      color: isDark ? TokenTheme.darkAccent : TokenTheme.primaryMintDark,
                       size: 20,
                     ),
                   ),
@@ -148,13 +150,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.09),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.09),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
               ),
               child: Material(
                 color: Colors.transparent,
@@ -167,11 +171,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color:
-                              const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                              isDark ? TokenTheme.darkInfo.withValues(alpha: 0.12) : const Color(0xFF3B82F6).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.login_rounded,
-                            color: Color(0xFF3B82F6), size: 20),
+                        child: Icon(Icons.login_rounded,
+                            color: isDark ? TokenTheme.darkInfo : const Color(0xFF3B82F6), size: 20),
                       ),
                       title: Text('Gate Arrival Alerts',
                           style: TextStyle(
@@ -193,11 +197,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color:
-                              const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                              isDark ? TokenTheme.darkWarning.withValues(alpha: 0.12) : const Color(0xFFF59E0B).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.logout_rounded,
-                            color: Color(0xFFF59E0B), size: 20),
+                        child: Icon(Icons.logout_rounded,
+                            color: isDark ? TokenTheme.darkWarning : const Color(0xFFF59E0B), size: 20),
                       ),
                       title: Text('Visitor Departure Alerts',
                           style: TextStyle(
@@ -227,13 +231,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.09),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.09),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
               ),
               child: Material(
                 color: Colors.transparent,
@@ -246,11 +252,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color:
-                              const Color(0xFF10B981).withValues(alpha: 0.12),
+                              isDark ? TokenTheme.darkAccent.withValues(alpha: 0.12) : const Color(0xFF10B981).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.fingerprint_rounded,
-                            color: Color(0xFF10B981), size: 20),
+                        child: Icon(Icons.fingerprint_rounded,
+                            color: isDark ? TokenTheme.darkAccent : const Color(0xFF10B981), size: 20),
                       ),
                       title: Text('Biometric App Lock',
                           style: TextStyle(
@@ -281,13 +287,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.09),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.09),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
               ),
               child: Column(
                 children: [
@@ -365,27 +373,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Navigator.of(context)
                                 .pushNamedAndRemoveUntil('/', (route) => false);
                           },
-                          child: const Text('Log Out',
+                          child: Text('Log Out',
                               style: TextStyle(
-                                  color: Color(0xFFEF4444),
+                                  color: isDark ? TokenTheme.darkError : const Color(0xFFEF4444),
                                   fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
                   );
                 },
-                icon: const Icon(Icons.logout_rounded,
-                    color: Color(0xFFEF4444), size: 20),
-                label: const Text(
+                icon: Icon(Icons.logout_rounded,
+                    color: isDark ? TokenTheme.darkError : const Color(0xFFEF4444), size: 20),
+                label: Text(
                   'Log Out',
                   style: TextStyle(
-                    color: Color(0xFFEF4444),
+                    color: isDark ? TokenTheme.darkError : const Color(0xFFEF4444),
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFEF4444)),
+                  side: BorderSide(color: isDark ? TokenTheme.darkError : const Color(0xFFEF4444)),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),

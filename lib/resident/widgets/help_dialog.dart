@@ -26,7 +26,7 @@ class HelpBottomSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
+        boxShadow: isDark ? null : [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 20,
@@ -56,12 +56,14 @@ class HelpBottomSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: TokenTheme.primaryMint.withValues(alpha: 0.15),
+                    color: isDark
+                ? TokenTheme.darkTint(0.18)
+                : TokenTheme.primaryMint.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.security_rounded,
-                    color: TokenTheme.primaryMint,
+                    color: isDark ? TokenTheme.darkAccent : TokenTheme.primaryMint,
                     size: 24,
                   ),
                 ),
@@ -83,6 +85,7 @@ class HelpBottomSheet extends StatelessWidget {
               description: 'Drive or walk to any authorized entrance gate or pedestrian turnstile.',
               bodyColor: bodyColor,
               titleColor: titleColor,
+              isDark: isDark,
             ),
             const SizedBox(height: 16),
             _buildStep(
@@ -91,6 +94,7 @@ class HelpBottomSheet extends StatelessWidget {
               description: 'Show your 5-digit code to the optical scanner or read out the token to security.',
               bodyColor: bodyColor,
               titleColor: titleColor,
+              isDark: isDark,
             ),
             const SizedBox(height: 16),
             _buildStep(
@@ -99,6 +103,7 @@ class HelpBottomSheet extends StatelessWidget {
               description: 'Security or terminal validates the token instantly. The boom barrier lifts for seamless access.',
               bodyColor: bodyColor,
               titleColor: titleColor,
+              isDark: isDark,
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -107,16 +112,16 @@ class HelpBottomSheet extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: TokenTheme.primaryMint,
+                  backgroundColor: isDark ? TokenTheme.darkAccent : TokenTheme.primaryMint,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Got it',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isDark ? TokenTheme.darkBg : Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -135,6 +140,7 @@ class HelpBottomSheet extends StatelessWidget {
     required String description,
     required Color bodyColor,
     required Color titleColor,
+    required bool isDark,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,14 +149,16 @@ class HelpBottomSheet extends StatelessWidget {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: TokenTheme.primaryMint.withValues(alpha: 0.15),
+            color: isDark
+                ? TokenTheme.darkTint(0.18)
+                : TokenTheme.primaryMint.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
           child: Text(
             number,
-            style: const TextStyle(
-              color: TokenTheme.primaryMint,
+            style: TextStyle(
+              color: isDark ? TokenTheme.darkAccent : TokenTheme.primaryMint,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),

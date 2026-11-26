@@ -1,7 +1,8 @@
+import 'package:estate/gate/models/gate_log_model.dart';
+import 'package:estate/gate/state/gatehouse_store.dart';
+import 'package:estate/gate/ui/gate_style.dart';
 import 'package:estate/shared/ui/theme.dart';
 import 'package:flutter/material.dart';
-import 'package:estate/gate/state/gatehouse_store.dart';
-import 'package:estate/gate/models/gate_log_model.dart';
 
 class GatehouseHistoryScreen extends StatefulWidget {
   final bool isDark;
@@ -13,501 +14,266 @@ class GatehouseHistoryScreen extends StatefulWidget {
 }
 
 class _GatehouseHistoryScreenState extends State<GatehouseHistoryScreen> {
+  final _store = GatehouseStore.instance;
+  int _selectedFilter = 0;
+  String _searchQuery = '';
+  bool _initialLoad = true;
+
   @override
   void initState() {
     super.initState();
-    GatehouseStore.instance.refreshHistory();
+    _load();
   }
 
-  int _selectedFilter = 0; // 0: All, 1: Entries, 2: Exits, 3: Denied
-  String _searchQuery = '';
+  Future<void> _load() async {
+    await _store.refreshHistory();
+    if (mounted && _initialLoad) setState(() => _initialLoad = false);
+  }
 
-  void _showLogDetail(BuildContext context, GateLogEntry log, bool isDark) {
-    final primaryTextColor = isDark ? Colors.white : const Color(0xFF111827);
-    final secondaryTextColor =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final cardBg = isDark ? const Color(0xFF161E2E) : Colors.white;
+  String _label(GateLogEntry log) {
+    final label = log.actionLabel.toLowerCase();
+    return label[0].toUpperCase() + label.substring(1);
+  }
 
-    showModalBottomSheet(
+  Color _color(GateLogEntry log, GatePalette palette) {
+    if (log.isEntry) return palette.accent;
+    if (log.isExit) return palette.info;
+    return palette.danger;
+  }
+
+  IconData _icon(GateLogEntry log) {
+    if (log.isEntry) return Icons.login;
+    if (log.isExit) return Icons.logout;
+    if (log.isEmergency) return Icons.emergency_outlined;
+    return Icons.block;
+  }
+
+  void _showLogDetail(GateLogEntry log, GatePalette palette) {
+    final label = _label(log);
+    final icon = _icon(log);
+    final color = _color(log, palette);
+    final localizations = MaterialLocalizations.of(context);
+    final timestamp = log.timestamp;
+    final time = TimeOfDay.fromDateTime(timestamp).format(context);
+
+    showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white24 : Colors.black12,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: (log.isEntry
-                                ? const Color(0xFF10B981)
-                                : (log.isExit
-                                    ? const Color(0xFF0284C7)
-                                    : const Color(0xFFEF4444)))
-                            .withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        log.isEntry
-                            ? Icons.login_rounded
-                            : (log.isExit
-                                ? Icons.logout_rounded
-                                : Icons.block_rounded),
-                        color: log.isEntry
-                            ? const Color(0xFF10B981)
-                            : (log.isExit
-                                ? const Color(0xFF0284C7)
-                                : const Color(0xFFEF4444)),
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          log.actionLabel,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                            color: log.isEntry
-                                ? const Color(0xFF10B981)
-                                : (log.isExit
-                                    ? const Color(0xFF0284C7)
-                                    : const Color(0xFFEF4444)),
-                          ),
-                        ),
-                        Text(
-                          'Log ID: ${log.id}',
-                          style: TextStyle(
-                              fontSize: 12, color: secondaryTextColor),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _buildRow('Visitor Name', log.visitorName, primaryTextColor,
-                    secondaryTextColor),
-                _buildRow('Pass / OTP Code', '#${log.code}',
-                    const Color(0xFF0D9488), secondaryTextColor),
-                _buildRow('Host Resident', log.hostResident, primaryTextColor,
-                    secondaryTextColor),
-                _buildRow('Host Unit', log.hostUnit, primaryTextColor,
-                    secondaryTextColor),
-                _buildRow('Gate Location', log.gateLocation, primaryTextColor,
-                    secondaryTextColor),
-                _buildRow('Duty Officer', log.officerName, primaryTextColor,
-                    secondaryTextColor),
-                _buildRow('Verification Method', log.verificationMethod,
-                    primaryTextColor, secondaryTextColor),
-                _buildRow(
-                  'Timestamp',
-                  '${log.timestamp.day}/${log.timestamp.month}/${log.timestamp.year} • ${log.timestamp.hour.toString().padLeft(2, '0')}:${log.timestamp.minute.toString().padLeft(2, '0')}',
-                  primaryTextColor,
-                  secondaryTextColor,
-                ),
+      showDragHandle: true,
+      backgroundColor: palette.surface,
+      sheetAnimationStyle: AnimationStyle.noAnimation,
+      builder: (context) => SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                  alignment: Alignment.centerLeft,
+                  child: GateIcon(icon, color)),
+              const SizedBox(height: 10),
+              Text(log.visitorName,
+                  style: TextStyle(
+                      color: palette.ink,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Align(
+                  alignment: Alignment.centerLeft,
+                  child: GateStatus(label, color)),
+              const SizedBox(height: 12),
+              for (final field in {
+                'Log ID': log.id,
+                'Token': log.code,
+                'Host resident': log.hostResident,
+                'Host unit': log.hostUnit,
+                'Gate location': log.gateLocation,
+                'Duty officer': log.officerName,
+                'Verification method': log.verificationMethod,
+                'Timestamp':
+                    '${localizations.formatMediumDate(timestamp)} · $time',
                 if (log.denialReason != null)
-                  _buildRow('Denial Reason', log.denialReason!,
-                      const Color(0xFFEF4444), secondaryTextColor),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D9488),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: const Text('Done',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
+                  'Denial reason': log.denialReason!,
+              }.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                          child: Text(field.key,
+                              style: TextStyle(color: palette.muted))),
+                      const SizedBox(width: 16),
+                      Expanded(
+                          child: Text(field.value,
+                              textAlign: TextAlign.end,
+                              style: TextStyle(
+                                  color: palette.ink,
+                                  fontWeight: FontWeight.w600))),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              const SizedBox(height: 16),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                    backgroundColor: palette.action,
+                    foregroundColor: palette.dark ? TokenTheme.darkBg : Colors.white,
+                    minimumSize: const Size(0, 48)),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Done'),
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildRow(
-      String label, String value, Color valueColor, Color labelColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 13,
-                  color: labelColor,
-                  fontWeight: FontWeight.w500)),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 13.5,
-                  color: valueColor,
-                  fontWeight: FontWeight.w700)),
-        ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF0B0F17) : const Color(0xFFF4F6F9);
-    final cardBg = isDark ? const Color(0xFF161E2E) : Colors.white;
-    final primaryTextColor = isDark ? Colors.white : const Color(0xFF111827);
-    final secondaryTextColor =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor =
-        isDark ? const Color(0xFF26334D) : const Color(0xFFE2E8F0);
+    final palette = GatePalette.of(context);
+    return Scaffold(
+      backgroundColor: palette.canvas,
+      appBar: gateHeader(context, 'Gate history', subtitle: 'Last 24 hours'),
+      body: SafeArea(
+        child: ListenableBuilder(
+          listenable: _store,
+          builder: (context, _) {
+            final logs = _store.logs;
+            final query = _searchQuery.trim().toLowerCase();
+            final matches = logs.where((log) {
+              if (_selectedFilter == 1 && !log.isEntry) return false;
+              if (_selectedFilter == 2 && !log.isExit) return false;
+              if (_selectedFilter == 3 && !log.isDenied) return false;
+              return [log.visitorName, log.hostResident, log.hostUnit, log.code]
+                  .any((value) => value.toLowerCase().contains(query));
+            }).toList();
+            final filters = [
+              'All (${logs.length})',
+              'Entries (${_store.todayEntriesCount})',
+              'Exits (${_store.todayExitsCount})',
+              'Denied (${_store.todayDeniedCount})',
+            ];
 
-    return AnimatedBuilder(
-      animation: GatehouseStore.instance,
-      builder: (context, _) {
-        final allLogs = GatehouseStore.instance.logs;
-
-        final filteredLogs = allLogs.where((log) {
-          if (_selectedFilter == 1 && !log.isEntry) return false;
-          if (_selectedFilter == 2 && !log.isExit) return false;
-          if (_selectedFilter == 3 && !log.isDenied) return false;
-
-          if (_searchQuery.isNotEmpty) {
-            final q = _searchQuery.toLowerCase();
-            return log.visitorName.toLowerCase().contains(q) ||
-                log.hostResident.toLowerCase().contains(q) ||
-                log.hostUnit.toLowerCase().contains(q) ||
-                log.code.toLowerCase().contains(q);
-          }
-          return true;
-        }).toList();
-
-        return Scaffold(
-          backgroundColor: bgColor,
-          appBar: AppBar(
-            backgroundColor: isDark ? const Color(0xFF111827) : Colors.white,
-            elevation: 0,
-            title: Text(
-              '24-Hour Gate Logs',
-              style: TextStyle(
-                color: primaryTextColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(color: borderColor, height: 1),
-            ),
-          ),
-          body: SafeArea(
-              child: RefreshIndicator(
-            onRefresh: GatehouseStore.instance.refreshHistory,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: TokenTheme.pageSidePadding, vertical: 14),
-              physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics()),
-              children: [
-                if (GatehouseStore.instance.historyError != null)
-                  Text(GatehouseStore.instance.historyError!,
-                      style: const TextStyle(color: Colors.red)),
-                // Search Bar
-                TextField(
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: InputDecoration(
-                    hintText: 'Search logs by visitor, unit, or code...',
-                    hintStyle:
-                        TextStyle(fontSize: 13, color: secondaryTextColor),
-                    prefixIcon: Icon(Icons.search_rounded,
-                        color: secondaryTextColor, size: 20),
-                    filled: true,
-                    fillColor: cardBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: borderColor),
+            return RefreshIndicator(
+              color: palette.accent,
+              onRefresh: _load,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(TokenTheme.pageSidePadding,
+                    16, TokenTheme.pageSidePadding, 96),
+                children: [
+                  TextField(
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    style: TextStyle(color: palette.ink),
+                    decoration: InputDecoration(
+                      labelText: 'Search gate logs',
+                      hintText: 'Visitor, host, unit or token',
+                      labelStyle: TextStyle(color: palette.muted),
+                      prefixIcon: Icon(Icons.search, color: palette.muted),
+                      filled: true,
+                      fillColor: palette.surface,
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: palette.line)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              BorderSide(color: palette.accent, width: 2)),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
                     children: [
-                      _buildFilterChip(
-                          'All Logs (${allLogs.length})', 0, isDark),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                          'Entries (${GatehouseStore.instance.todayEntriesCount})',
-                          1,
-                          isDark),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                          'Exits (${GatehouseStore.instance.todayExitsCount})',
-                          2,
-                          isDark),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                          'Denied (${GatehouseStore.instance.todayDeniedCount})',
-                          3,
-                          isDark),
+                      for (var i = 0; i < filters.length; i++)
+                        ChoiceChip(
+                          label: Text(filters[i]),
+                          selected: _selectedFilter == i,
+                          onSelected: (_) =>
+                              setState(() => _selectedFilter = i),
+                          backgroundColor: palette.surface,
+                          selectedColor: palette.tint,
+                          checkmarkColor: palette.accent,
+                          labelStyle: TextStyle(color: palette.ink),
+                          side: BorderSide(
+                              color: _selectedFilter == i
+                                  ? palette.accent
+                                  : palette.line),
+                        ),
                     ],
                   ),
-                ),
-
-                const SizedBox(height: 18),
-
-                // Audit Trail Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'LOG AUDIT TRAIL (${filteredLogs.length})',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                    const Text(
-                      'Last 24 Hours',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0D9488),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                if (filteredLogs.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'No gate access logs matching the selected filter',
-                        style:
-                            TextStyle(color: secondaryTextColor, fontSize: 13),
-                      ),
-                    ),
-                  )
-                else
-                  ...filteredLogs.map((log) {
-                    final color = log.isEntry
-                        ? const Color(0xFF10B981)
-                        : (log.isExit
-                            ? const Color(0xFF0284C7)
-                            : const Color(0xFFEF4444));
-
-                    final timeStr =
-                        '${log.timestamp.hour.toString().padLeft(2, '0')}:${log.timestamp.minute.toString().padLeft(2, '0')}';
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: borderColor),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black
-                                .withValues(alpha: isDark ? 0.2 : 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
+                  const SizedBox(height: 12),
+                  if (_store.historyError != null)
+                    Container(
+                      decoration: palette.panel(),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_store.historyError!,
+                              style: TextStyle(color: palette.danger)),
+                          TextButton(
+                              onPressed: _load, child: const Text('Retry')),
                         ],
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _showLogDetail(context, log, isDark),
-                          borderRadius: BorderRadius.circular(18),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.12),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    log.isEntry
-                                        ? Icons.login_rounded
-                                        : (log.isExit
-                                            ? Icons.logout_rounded
-                                            : Icons.block_rounded),
-                                    color: color,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              log.visitorName,
-                                              style: TextStyle(
-                                                fontSize: 14.5,
-                                                fontWeight: FontWeight.bold,
-                                                color: primaryTextColor,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  color.withValues(alpha: 0.12),
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              log.actionLabel,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w900,
-                                                color: color,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        'Host: ${log.hostResident} • ${log.hostUnit}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: secondaryTextColor,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Token #${log.code} • ${log.gateLocation.split('(').first.trim()}',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF0D9488),
-                                            ),
-                                          ),
-                                          Text(
-                                            timeStr,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              color: secondaryTextColor,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-
-                const SizedBox(height: 24),
-              ],
-            ),
-          )),
-        );
-      },
+                    ),
+                  if (_initialLoad)
+                    LinearProgressIndicator(color: palette.accent)
+                  else if (matches.isEmpty && _store.historyError == null)
+                    GateEmptyState(
+                        Icons.history,
+                        query.isEmpty && _selectedFilter == 0
+                            ? 'No gate activity in the last 24 hours.'
+                            : 'No logs match your search or filter.')
+                  else
+                    for (final log in matches) _logTile(log, palette),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
-  Widget _buildFilterChip(String label, int index, bool isDark) {
-    final isSelected = _selectedFilter == index;
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedFilter = index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF0D9488)
-              : (isDark ? const Color(0xFF161E2E) : Colors.white),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF0D9488)
-                : (isDark ? const Color(0xFF26334D) : const Color(0xFFE2E8F0)),
+  Widget _logTile(GateLogEntry log, GatePalette palette) {
+    final label = _label(log);
+    final icon = _icon(log);
+    final color = _color(log, palette);
+    final time = TimeOfDay.fromDateTime(log.timestamp).format(context);
+    final gate = log.gateLocation.split('(').first.trim();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        shape: RoundedRectangleBorder(
+            side: BorderSide(color: palette.line),
+            borderRadius: BorderRadius.circular(12)),
+        color: palette.surface,
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          onTap: () => _showLogDetail(log, palette),
+          leading: GateIcon(icon, color),
+          title: Text(log.visitorName,
+              style:
+                  TextStyle(color: palette.ink, fontWeight: FontWeight.w700)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${log.hostResident} · ${log.hostUnit}',
+                  style: TextStyle(color: palette.muted)),
+              Text('#${log.code} · $gate · $time',
+                  style: TextStyle(color: palette.muted)),
+              const SizedBox(height: 6),
+              GateStatus(label, color),
+            ],
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected
-                ? Colors.white
-                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-          ),
+          trailing: Icon(Icons.chevron_right, color: palette.muted),
         ),
       ),
     );
