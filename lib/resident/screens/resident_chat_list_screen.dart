@@ -42,7 +42,7 @@ class _ResidentChatListScreenState extends State<ResidentChatListScreen> {
     return AnimatedBuilder(
       animation: Listenable.merge([_search, _unreadOnly, _searchOpen]),
       builder: (context, _) {
-        return SharedChatScreen(
+        return _swipeTabs(SharedChatScreen(
           isGuard: false,
           inboxTitle: 'Chats',
           participantField: 'gate_site_name',
@@ -141,10 +141,33 @@ class _ResidentChatListScreenState extends State<ResidentChatListScreen> {
             threadId: id,
             service: api,
           ),
-        );
+        ));
       },
     );
   }
+
+  // Swipe left for Unread, right for All. A raw Listener (not a drag recognizer) so it
+  // never competes with vertical scrolling or the left-edge drawer swipe.
+  Offset? _swipeStart;
+  DateTime? _swipeAt;
+
+  Widget _swipeTabs(Widget child) => Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (e) {
+          _swipeStart = e.position.dx < 24 ? null : e.position;
+          _swipeAt = DateTime.now();
+        },
+        onPointerUp: (e) {
+          final start = _swipeStart, at = _swipeAt;
+          _swipeStart = null;
+          if (start == null || at == null) return;
+          final dx = e.position.dx - start.dx, dy = e.position.dy - start.dy;
+          final quick = DateTime.now().difference(at).inMilliseconds < 600;
+          if (!quick || dx.abs() < 70 || dx.abs() < dy.abs() * 2) return;
+          _unreadOnly.value = dx < 0;
+        },
+        child: child,
+      );
 
   Widget _searchAndTabs(WhatsAppPalette palette) {
     return DecoratedBox(
