@@ -27,6 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
+  // Shown only after the server says this account is suspended (correct password,
+  // X-Account-Status: suspended). Never offered to active accounts.
+  bool _accountSuspended = false;
 
   @override
   void dispose() {
@@ -39,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     setState(() {
       _errorMessage = null;
+      _accountSuspended = false;
     });
 
     if (!_formKey.currentState!.validate()) {
@@ -65,9 +69,41 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } else {
       setState(() {
-        _errorMessage =
-            res['message'] ?? 'Login failed. Please check your credentials.';
+        _accountSuspended = res['suspended'] == true;
+        _errorMessage = _accountSuspended
+            ? 'This account is suspended. You can ask your estate management team to reinstate it.'
+            : res['message'] ?? 'Login failed. Please check your credentials.';
       });
+    }
+  }
+
+  Future<void> _requestReinstatement() async {
+    final estate = _appIdController.text.trim().toUpperCase();
+    final email = _emailController.text.trim();
+    if (estate.isEmpty || !email.contains('@')) {
+      setState(() => _errorMessage = 'Enter your estate App ID and email.');
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final accepted = await AuthService.instance.requestReinstatement(
+      appId: estate,
+      email: email,
+    );
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      if (!accepted) {
+        _errorMessage = 'Unable to submit the request. Please try again.';
+      }
+    });
+    if (accepted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'If the account is eligible, your estate management team will receive your request.'),
+      ));
     }
   }
 
@@ -99,8 +135,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (_errorMessage != null) AuthError(_errorMessage!),
+                    if (_accountSuspended)
+                      TextButton(
+                        onPressed: _isLoading ? null : _requestReinstatement,
+                        child: const Text('Request account reinstatement'),
+                      ),
                     TextFormField(
                         controller: _appIdController,
+                        onChanged: (_) {
+                          if (_accountSuspended) {
+                            setState(() => _accountSuspended = false);
+                          }
+                        },
                         enabled: !_isLoading,
                         textCapitalization: TextCapitalization.characters,
                         autocorrect: false,
@@ -113,6 +159,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     TextFormField(
                         controller: _emailController,
+                        onChanged: (_) {
+                          if (_accountSuspended) {
+                            setState(() => _accountSuspended = false);
+                          }
+                        },
                         enabled: !_isLoading,
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [

@@ -33,12 +33,13 @@ class AuthService {
       final user =
           UserModel.fromJson(Map<String, dynamic>.from(session['user']));
       _appId = session['app_id'] as String;
+      _setEstateName(session['estate_name']);
       _accessToken = session['token'] as String;
       _setTokenCodeLength((session['code_length'] as int?) ?? 6);
-      activeViewModeNotifier.value =
-          session['view_mode'] == 'gatehouse' && user.isGuard
-              ? AppViewMode.gatehouse
-              : AppViewMode.resident;
+      final savedMode = session['view_mode'] == 'gatehouse'
+          ? AppViewMode.gatehouse
+          : AppViewMode.resident;
+      activeViewModeNotifier.value = _allowedView(user, savedMode);
       _armExpiry();
       currentUserNotifier.value = user;
       if (!user.mustChangePassword) _syncFcmAuth(_accessToken);
@@ -54,6 +55,7 @@ class AuthService {
         'app_id': _appId,
         'user': user.toJson(),
         'code_length': tokenCodeLength,
+        'estate_name': estateNameNotifier.value,
         'view_mode': activeViewMode.name,
       });
 
@@ -98,6 +100,13 @@ class AuthService {
     tokenCodeLengthNotifier.value = length;
   }
 
+  final ValueNotifier<String?> estateNameNotifier = ValueNotifier(null);
+
+  void _setEstateName(Object? value) {
+    final name = value is String ? value.trim() : '';
+    estateNameNotifier.value = name.isEmpty || name == _appId ? null : name;
+  }
+
   Future<void>? _settingsRefresh;
   bool _settingsRefreshAgain = false;
   Future<void> refreshEstateSettings({bool invalidate = false}) {
@@ -137,24 +146,30 @@ class AuthService {
         return;
       }
       _setTokenCodeLength(length);
+      if (data.containsKey('estate_name')) _setEstateName(data['estate_name']);
       if (currentUser != null) await _persistSession(currentUser!);
     } catch (_) {
       /* Retain the last saved settings offline; retry on the next event/resume. */
     }
   }
 
+  AppViewMode _allowedView(UserModel user, AppViewMode requested) {
+    if (!user.isGuard) return AppViewMode.resident;
+    if (!user.canSwitchToResident) return AppViewMode.gatehouse;
+    return requested;
+  }
+
   void switchActiveViewMode(AppViewMode mode) {
-    activeViewModeNotifier.value = mode;
-    if (currentUser != null) {
-      _persistSession(currentUser!).catchError((Object _) {});
-    }
+    final user = currentUser;
+    if (user == null) return;
+    activeViewModeNotifier.value = _allowedView(user, mode);
+    _persistSession(user).catchError((Object _) {});
   }
 
   void toggleActiveViewMode() {
-    activeViewModeNotifier.value =
-        activeViewModeNotifier.value == AppViewMode.gatehouse
-            ? AppViewMode.resident
-            : AppViewMode.gatehouse;
+    switchActiveViewMode(activeViewModeNotifier.value == AppViewMode.gatehouse
+        ? AppViewMode.resident
+        : AppViewMode.gatehouse);
   }
 
   void setBaseUrl(String url) {
@@ -163,7 +178,9 @@ class AuthService {
   }
 
   void setAppId(String id) {
+    if (_appId == id) return;
     _appId = id;
+    _setEstateName(null);
   }
 
   /// Register a new resident using an invite/registration code from a Landlord/Caretaker
@@ -224,6 +241,24 @@ class AuthService {
     }
   }
 
+  Future<bool> requestReinstatement({
+    required String appId,
+    required String email,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/api/v1/auth/request-reinstatement'),
+            headers: {'Content-Type': 'application/json', 'X-App-Id': appId},
+            body: jsonEncode({'email': email.trim()}),
+          )
+          .timeout(const Duration(seconds: 10));
+      return response.statusCode == 202;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Log in with email and password
   Future<Map<String, dynamic>> login({
     required String email,
@@ -262,7 +297,7 @@ class AuthService {
         if (_accessToken == null) {
           throw StateError('Server did not return an access token.');
         }
-        _appId = tenantId;
+        setAppId(tenantId);
         final user = UserModel.fromJson(userObj);
         if (user.isGuard && !user.isResident) {
           activeViewModeNotifier.value = AppViewMode.gatehouse;
@@ -287,6 +322,8 @@ class AuthService {
         final errorData = _parseError(response.body);
         return {
           'success': false,
+          // The server marks suspended accounts (only after the password checks out).
+          'suspended': response.headers['x-account-status'] == 'suspended',
           'message': errorData['detail'] ??
               errorData['message'] ??
               'Incorrect email or password.',
@@ -451,6 +488,7 @@ class AuthService {
     FCMService.instance.pendingChatThread.value = null;
     currentUserNotifier.value = null;
     _setTokenCodeLength(6);
+    _setEstateName(null);
   }
 
   Future<void> _endServerSession(String? token, String appId) async {

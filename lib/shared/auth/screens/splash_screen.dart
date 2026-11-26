@@ -61,16 +61,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.white,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: TokenTheme.pageBg(isDark),
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: TokenTheme.pageBg(isDark),
         body: Stack(
           alignment: Alignment.center,
           children: [
@@ -85,7 +86,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      TokenTheme.primaryMint.withValues(alpha: 0.16),
+                      isDark
+                          ? TokenTheme.darkTint(0.10)
+                          : TokenTheme.primaryMint.withValues(alpha: 0.16),
                       Colors.transparent,
                     ],
                   ),
@@ -102,7 +105,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFF0284C7).withValues(alpha: 0.10),
+                      isDark
+                          ? TokenTheme.darkInfo.withValues(alpha: 0.08)
+                          : const Color(0xFF0284C7).withValues(alpha: 0.10),
                       Colors.transparent,
                     ],
                   ),
@@ -117,7 +122,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: TokenTheme.primaryMint.withValues(alpha: 0.15),
+                  color: isDark
+                      ? TokenTheme.darkBorder
+                      : TokenTheme.primaryMint.withValues(alpha: 0.15),
                   width: 1.5,
                 ),
               ),
@@ -128,7 +135,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: TokenTheme.primaryMintDark.withValues(alpha: 0.15),
+                  color: isDark
+                      ? TokenTheme.darkBorder
+                      : TokenTheme.primaryMintDark.withValues(alpha: 0.15),
                   width: 1.5,
                 ),
               ),
@@ -159,17 +168,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                 width: 92,
                                 height: 92,
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
+                                  gradient: LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
-                                      TokenTheme.primaryMintLight,
-                                      TokenTheme.primaryMintDark,
-                                      Color(0xFF047857),
+                                      isDark ? TokenTheme.darkSurface : TokenTheme.primaryMintLight,
+                                      isDark ? TokenTheme.darkCard : TokenTheme.primaryMintDark,
+                                      isDark ? TokenTheme.darkSurface : const Color(0xFF047857),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(26),
-                                  boxShadow: [
+                                  boxShadow: isDark ? null : [
                                     BoxShadow(
                                       color: TokenTheme.primaryMint.withValues(alpha: 0.35),
                                       blurRadius: 24,
@@ -178,7 +187,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                     ),
                                   ],
                                   border: Border.all(
-                                    color: Colors.white,
+                                    color: isDark ? TokenTheme.darkCard : Colors.white,
                                     width: 2,
                                   ),
                                 ),
@@ -201,9 +210,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                       child: Container(
                                         padding: const EdgeInsets.all(3),
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: isDark ? TokenTheme.darkCard : Colors.white,
                                           shape: BoxShape.circle,
-                                          boxShadow: [
+                                          boxShadow: isDark ? null : [
                                             BoxShadow(
                                               color: Colors.black.withValues(alpha: 0.1),
                                               blurRadius: 4,
@@ -214,10 +223,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                             width: 1,
                                           ),
                                         ),
-                                        child: const Icon(
+                                        child: Icon(
                                           Icons.lock_rounded,
                                           size: 11,
-                                          color: TokenTheme.primaryMintDark,
+                                          color: isDark ? TokenTheme.darkAccent : TokenTheme.primaryMintDark,
                                         ),
                                       ),
                                     ),
@@ -228,36 +237,36 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                               const SizedBox(height: 22),
 
                               // Brand Name
-                              const Text(
+                              Text(
                                 'Residence',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 34,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.8,
-                                  color: Color(0xFF0F172A),
+                                  color: isDark ? TokenTheme.darkTextPrimary : const Color(0xFF0F172A),
                                 ),
                               ),
 
                               const SizedBox(height: 6),
 
                               // Security Tagline
-                              const Row(
+                              Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.verified_user_rounded,
                                     size: 14,
-                                    color: TokenTheme.primaryMintDark,
+                                    color: isDark ? TokenTheme.darkAccent : TokenTheme.primaryMintDark,
                                   ),
-                                  SizedBox(width: 6),
+                                  const SizedBox(width: 6),
                                   Text(
                                     'Zero-Trust Smart Access & Identity',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF64748B),
+                                      color: isDark ? TokenTheme.darkTextSecondary : const Color(0xFF64748B),
                                       letterSpacing: 0.2,
                                     ),
                                   ),
@@ -281,29 +290,31 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                               width: 140,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
-                                child: const LinearProgressIndicator(
+                                child: LinearProgressIndicator(
                                   minHeight: 3,
-                                  backgroundColor: Color(0xFFE2E8F0),
-                                  valueColor: AlwaysStoppedAnimation<Color>(TokenTheme.primaryMintDark),
+                                  backgroundColor: isDark ? TokenTheme.darkBorder : const Color(0xFFE2E8F0),
+                                  valueColor: AlwaysStoppedAnimation<Color>(isDark
+                                      ? TokenTheme.darkAccent
+                                      : TokenTheme.primaryMintDark),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Row(
+                            Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.lock_outline_rounded,
                                   size: 12,
-                                  color: Color(0xFF64748B),
+                                  color: isDark ? TokenTheme.darkTextSecondary : const Color(0xFF64748B),
                                 ),
-                                SizedBox(width: 6),
+                                const SizedBox(width: 6),
                                 Text(
                                   'AES-256 GCM ENCRYPTED • RESIDENCE CORE',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Color(0xFF64748B),
+                                    color: isDark ? TokenTheme.darkTextSecondary : const Color(0xFF64748B),
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.9,
                                   ),
