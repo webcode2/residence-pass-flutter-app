@@ -45,6 +45,8 @@ void main() {
     expect(find.text('+2348012345678'), findsOneWidget);
     expect(find.textContaining('Palm Street'), findsOneWidget);
     expect(find.text('RESIDENCE & ACCOUNT'), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsNothing);
+    expect(find.text('Settings & Security Alerts'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Edit profile & property'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Edit profile & property'));

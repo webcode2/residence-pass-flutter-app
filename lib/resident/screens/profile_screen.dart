@@ -62,43 +62,7 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Header: "Profile" + Settings Gear Icon
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark
-                                ? const Color(0xFF263238)
-                                : const Color(0xFFE2E8F0),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black
-                                  .withValues(alpha: isDark ? 0.35 : 0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.settings_outlined,
-                            size: 22,
-                            color: TokenTheme.primaryMintDark,
-                          ),
-                          onPressed: () => _openSettings(context),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
                   // Avatar with Verified Security Badge in Theme Colors
                   Center(
