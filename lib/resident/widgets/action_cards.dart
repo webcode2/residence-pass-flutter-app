@@ -3,14 +3,12 @@ import 'package:estate/shared/ui/theme.dart';
 
 class ActionCards extends StatelessWidget {
   final bool isDark;
-  final VoidCallback onGenerate;
   final VoidCallback onCopy;
   final VoidCallback onShare;
 
   const ActionCards({
     super.key,
     required this.isDark,
-    required this.onGenerate,
     required this.onCopy,
     required this.onShare,
   });
@@ -20,12 +18,6 @@ class ActionCards extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildActionTile(
-          icon: Icons.add_circle_outline_rounded,
-          label: 'New Token',
-          onTap: onGenerate,
-        ),
-        const SizedBox(width: 24),
         _buildActionTile(
           icon: Icons.copy_rounded,
           label: 'Copy',

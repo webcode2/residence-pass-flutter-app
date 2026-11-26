@@ -81,7 +81,8 @@ class _AppScaffoldState extends State<AppScaffold> with WidgetsBindingObserver {
     ];
 
     return Scaffold(
-      floatingActionButton: _selectedIndex == 0
+      // Same New Token button on Home and on the Token tab.
+      floatingActionButton: _selectedIndex == 0 || _selectedIndex == 2
           ? FloatingActionButton.extended(
               tooltip: 'New Token',
               backgroundColor:

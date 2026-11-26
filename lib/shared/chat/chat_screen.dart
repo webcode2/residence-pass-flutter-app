@@ -70,10 +70,14 @@ class SharedChatScreen extends StatefulWidget {
     this.inboxFilter,
     this.inboxPadding,
     this.backgroundColor,
+    this.buildNewChatButton,
     this.threadId,
     this.service,
   });
 
+  /// Optional replacement for the default "New chat" button (residents only).
+  final Widget Function(BuildContext context, VoidCallback? onPressed)?
+      buildNewChatButton;
   final bool isGuard;
   final String inboxTitle;
   final String participantField;
@@ -343,10 +347,12 @@ class _SharedChatScreenState extends State<SharedChatScreen>
       appBar: widget.buildHeader?.call(context, title, actions) ??
           AppBar(title: Text(title), actions: actions),
       floatingActionButton: !detail && !widget.isGuard
-          ? FloatingActionButton.extended(
-              onPressed: _sending ? null : _create,
-              icon: const Icon(Icons.chat_outlined),
-              label: const Text('New chat'))
+          ? (widget.buildNewChatButton
+                  ?.call(context, _sending ? null : _create) ??
+              FloatingActionButton.extended(
+                  onPressed: _sending ? null : _create,
+                  icon: const Icon(Icons.chat_outlined),
+                  label: const Text('New chat')))
           : null,
       body: SafeArea(
         child: Column(
@@ -412,20 +418,19 @@ class _SharedChatScreenState extends State<SharedChatScreen>
           emergency: thread['has_active_emergency'] == true,
           lastMessageAt: thread['last_message_at']?.toString(),
           lastSenderRole: thread['last_sender_role']?.toString(),
-          avatarUrl: (thread['resident_avatar_url'] ??
-                  thread['avatar_url'])
+          avatarUrl: (thread['resident_avatar_url'] ?? thread['avatar_url'])
               ?.toString(),
           unitAddress: thread['unit_address']?.toString(),
         ),
       );
     }).toList();
     final filter = widget.inboxFilter;
-    final visible =
-        filter == null ? items : items.where((item) => filter(item.entry)).toList();
+    final visible = filter == null
+        ? items
+        : items.where((item) => filter(item.entry)).toList();
     final noThreads = _threads.isEmpty;
-    final showEmpty = visible.isEmpty &&
-        !_loading &&
-        (_error == null || customEmpty == null);
+    final showEmpty =
+        visible.isEmpty && !_loading && (_error == null || customEmpty == null);
     if (showEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -439,7 +444,8 @@ class _SharedChatScreenState extends State<SharedChatScreen>
             SizedBox(
               height: 180,
               child: Center(
-                  child: Text(noThreads ? 'No conversations yet.' : 'No chats found.')),
+                  child: Text(
+                      noThreads ? 'No conversations yet.' : 'No chats found.')),
             ),
         ],
       );

@@ -22,12 +22,14 @@ class ResidentChatListScreen extends StatefulWidget {
 class _ResidentChatListScreenState extends State<ResidentChatListScreen> {
   final _search = TextEditingController();
   final _searchFocus = FocusNode();
+  final _searchOpen = ValueNotifier<bool>(false);
   final _unreadOnly = ValueNotifier<bool>(false);
 
   @override
   void dispose() {
     _search.dispose();
     _searchFocus.dispose();
+    _searchOpen.dispose();
     _unreadOnly.dispose();
     super.dispose();
   }
@@ -38,7 +40,7 @@ class _ResidentChatListScreenState extends State<ResidentChatListScreen> {
     final palette = WhatsAppPalette(dark);
 
     return AnimatedBuilder(
-      animation: Listenable.merge([_search, _unreadOnly]),
+      animation: Listenable.merge([_search, _unreadOnly, _searchOpen]),
       builder: (context, _) {
         return SharedChatScreen(
           isGuard: false,
@@ -76,10 +78,21 @@ class _ResidentChatListScreenState extends State<ResidentChatListScreen> {
             ),
             actions: [
               IconButton(
-                tooltip: 'Search chats',
-                icon: const Icon(Icons.search_rounded),
-                onPressed: () =>
-                    FocusScope.of(context).requestFocus(_searchFocus),
+                tooltip: _searchOpen.value ? 'Close search' : 'Search chats',
+                icon: Icon(_searchOpen.value
+                    ? Icons.close_rounded
+                    : Icons.search_rounded),
+                onPressed: () {
+                  if (_searchOpen.value) {
+                    _search.clear();
+                    _searchOpen.value = false;
+                    _searchFocus.unfocus();
+                  } else {
+                    _searchOpen.value = true;
+                    WidgetsBinding.instance.addPostFrameCallback(
+                        (_) => _searchFocus.requestFocus());
+                  }
+                },
               ),
               PopupMenuButton<int>(
                 tooltip: 'More chat options',
@@ -96,6 +109,13 @@ class _ResidentChatListScreenState extends State<ResidentChatListScreen> {
             ],
           ),
           buildInboxHeader: (_) => _searchAndTabs(palette),
+          buildNewChatButton: (context, onPressed) => FloatingActionButton(
+            tooltip: 'New chat',
+            onPressed: onPressed,
+            backgroundColor: palette.unread,
+            foregroundColor: palette.onUnread,
+            child: const Icon(Icons.add_rounded),
+          ),
           buildInboxTile: (context, entry, onTap) => WhatsAppChatTile(
             entry: entry,
             onTap: onTap,
@@ -133,24 +153,25 @@ class _ResidentChatListScreenState extends State<ResidentChatListScreen> {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
         child: Column(
           children: [
-            TextField(
-              controller: _search,
-              focusNode: _searchFocus,
-              style: TextStyle(color: palette.textPrimary, fontSize: 15),
-              decoration: InputDecoration(
-                hintText: 'Search chats',
-                hintStyle: TextStyle(color: Colors.white.withAlpha(180)),
-                prefixIcon: const Icon(Icons.search_rounded,
-                    color: Colors.white70, size: 22),
-                filled: true,
-                fillColor: palette.searchFill,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(22),
-                  borderSide: BorderSide.none,
+            if (_searchOpen.value)
+              TextField(
+                controller: _search,
+                focusNode: _searchFocus,
+                style: TextStyle(color: palette.textPrimary, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: 'Search chats',
+                  hintStyle: TextStyle(color: palette.textSecondary),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: palette.textSecondary, size: 22),
+                  filled: true,
+                  fillColor: palette.searchFill,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 8),
             Row(
               children: [

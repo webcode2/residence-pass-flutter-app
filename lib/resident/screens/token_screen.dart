@@ -458,10 +458,9 @@ class _TokenScreenState extends State<TokenScreen> {
 
                       const SizedBox(height: 28),
 
-                      // Action Cards: New Pass, Copy, Share
+                      // Copy and Share; New Token is the floating button.
                       ActionCards(
                         isDark: isDark,
-                        onGenerate: _showGenerateTokenSheet,
                         onCopy: () => _onCopyToken(token),
                         onShare: () =>
                             _onNativeShare(guestName, token, _gateLocation),
