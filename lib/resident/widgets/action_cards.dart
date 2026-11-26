@@ -22,7 +22,7 @@ class ActionCards extends StatelessWidget {
       children: [
         _buildActionTile(
           icon: Icons.add_circle_outline_rounded,
-          label: 'New Pass',
+          label: 'New Token',
           onTap: onGenerate,
         ),
         const SizedBox(width: 24),
@@ -47,8 +47,10 @@ class ActionCards extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     final cardBg = TokenTheme.card(isDark);
-    final iconColor = isDark ? TokenTheme.darkAccent : TokenTheme.primaryMintDark;
-    final labelColor = isDark ? TokenTheme.darkTextSecondary : TokenTheme.lightTextSecondary;
+    final iconColor =
+        isDark ? TokenTheme.darkAccent : TokenTheme.primaryMintDark;
+    final labelColor =
+        isDark ? TokenTheme.darkTextSecondary : TokenTheme.lightTextSecondary;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -67,16 +69,19 @@ class ActionCards extends StatelessWidget {
                 color: cardBg,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: isDark ? TokenTheme.darkBorder : const Color(0xFFE2E8F0),
+                  color:
+                      isDark ? TokenTheme.darkBorder : const Color(0xFFE2E8F0),
                   width: 1,
                 ),
-                boxShadow: isDark ? null : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                boxShadow: isDark
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
               ),
               child: Center(
                 child: Icon(

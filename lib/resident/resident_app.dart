@@ -83,7 +83,10 @@ class _AppScaffoldState extends State<AppScaffold> with WidgetsBindingObserver {
     return Scaffold(
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton.extended(
-              tooltip: 'New Pass',
+              tooltip: 'New Token',
+              backgroundColor:
+                  isDark ? TokenTheme.darkAccent : TokenTheme.primaryMint,
+              foregroundColor: isDark ? TokenTheme.darkBg : Colors.white,
               onPressed: () {
                 setState(() => _selectedIndex = 2);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -91,7 +94,7 @@ class _AppScaffoldState extends State<AppScaffold> with WidgetsBindingObserver {
                 });
               },
               icon: const Icon(Icons.add),
-              label: const Text('New Pass'),
+              label: const Text('New Token'),
             )
           : null,
       body: IndexedStack(
@@ -107,13 +110,15 @@ class _AppScaffoldState extends State<AppScaffold> with WidgetsBindingObserver {
               width: 1,
             ),
           ),
-          boxShadow: isDark ? null : [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, -3),
-            ),
-          ],
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
         ),
         child: SafeArea(
           top: false,

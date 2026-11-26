@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-      'New Pass floating button opens the real pass form and Chat is a bottom tab',
+      'New Token floating button opens the real pass form and Chat is a bottom tab',
       (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -15,7 +15,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Chat'), findsOneWidget);
     expect(find.byTooltip('Contact gatehouse'), findsNothing);
-    await tester.tap(find.byTooltip('New Pass'));
+    await tester.tap(find.byTooltip('New Token'));
     await tester.pumpAndSettle();
     expect(find.text('Generate Pass Token'), findsOneWidget);
     expect(tester.takeException(), isNull);

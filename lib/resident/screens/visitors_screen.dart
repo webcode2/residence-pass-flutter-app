@@ -454,7 +454,7 @@ class VisitorsScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Create New Pass',
+            tooltip: 'Create New Token',
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(

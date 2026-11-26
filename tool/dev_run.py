@@ -1,7 +1,12 @@
 """Run the app against a backend with hot reload on every save.
 
     python tool/dev_run.py                      # emulator-5554, live Ohio API
+    python tool/dev_run.py --device emulator-5554 --device 5843524835493498   # both at once
     python tool/dev_run.py --device chrome --api http://localhost:8000
+
+Run several devices from ONE session (repeat --device). Two separate sessions in this
+folder share the same build output and overwrite each other's app (an x86_64-only APK
+ends up on an ARM phone); one session builds per device and hot-reloads all of them.
 
 Saving any .dart file under lib/ triggers a hot reload automatically. Type a key and
 press Enter to send it to Flutter:  r = hot reload, R = hot restart (resets app state),
@@ -34,15 +39,16 @@ def dart_snapshot(root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--device", default="emulator-5554")
+    parser.add_argument("--device", action="append", help="repeat for several devices (default emulator-5554)")
     parser.add_argument("--api", default=DEFAULT_API, help="backend origin passed as API_BASE_URL")
     args = parser.parse_args()
 
     flutter = shutil.which("flutter.bat") or shutil.which("flutter") or "flutter"
-    cmd = [flutter, "run", "-d", args.device, f"--dart-define=API_BASE_URL={args.api}"]
+    devices = args.device or ["emulator-5554"]
+    cmd = [flutter, "run", *[part for d in devices for part in ("-d", d)], f"--dart-define=API_BASE_URL={args.api}"]
     if os.name == "nt" and flutter.lower().endswith(".bat"):
         cmd = ["cmd", "/c", *cmd]
-    print(f"[dev_run] {args.device} -> {args.api}")
+    print(f"[dev_run] {', '.join(devices)} -> {args.api}")
     print("[dev_run] auto hot reload on save; type r / R / q + Enter for reload / restart / quit")
     proc = subprocess.Popen(cmd, cwd=MOBILE_DIR, stdin=subprocess.PIPE, text=True, bufsize=0)
     lock = threading.Lock()

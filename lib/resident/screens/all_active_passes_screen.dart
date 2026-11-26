@@ -290,7 +290,7 @@ class AllActivePassesScreen extends StatelessWidget {
         ),
         icon: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
         label: const Text(
-          'New Pass',
+          'New Token',
           style: TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
         ),

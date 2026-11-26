@@ -5,6 +5,8 @@ import 'package:estate/shared/auth/auth_service.dart';
 import 'package:estate/resident/state/visitor_store.dart';
 import 'package:estate/resident/widgets/security_tips_carousel.dart';
 import 'package:estate/resident/screens/create_token_screen.dart';
+import 'package:estate/resident/screens/incident_report_screen.dart';
+import 'package:estate/shared/sos/sos_center_screen.dart';
 
 class HomeDashboardScreen extends StatelessWidget {
   final bool isDark;
@@ -242,7 +244,7 @@ class HomeDashboardScreen extends StatelessWidget {
                   Row(
                     children: [
                       _buildQuickAction(
-                        'Invite Guest',
+                        'New Token',
                         Icons.person_add_alt_1_rounded,
                         const Color(0xFF3B82F6),
                         cardBg,
@@ -254,6 +256,69 @@ class HomeDashboardScreen extends StatelessWidget {
                               builder: (context) =>
                                   CreateTokenScreen(isDark: isDark)),
                         ),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildQuickAction(
+                        'Registered visitors',
+                        Icons.groups_rounded,
+                        const Color(0xFF0EA5A4),
+                        cardBg,
+                        primaryTextColor,
+                        isDark,
+                        onTap: onNavigateToVisitors,
+                      ),
+                      const SizedBox(width: 12),
+                      _buildQuickAction(
+                        'My token',
+                        Icons.qr_code_2_rounded,
+                        TokenTheme.primaryMint,
+                        cardBg,
+                        primaryTextColor,
+                        isDark,
+                        onTap: onNavigateToToken,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildQuickAction(
+                        'SOS',
+                        Icons.sos_rounded,
+                        const Color(0xFFDC2626),
+                        cardBg,
+                        primaryTextColor,
+                        isDark,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const SosCenterScreen()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildQuickAction(
+                        'Incident report',
+                        Icons.report_gmailerrorred_rounded,
+                        const Color(0xFFEA580C),
+                        cardBg,
+                        primaryTextColor,
+                        isDark,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const IncidentReportScreen()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildQuickAction(
+                        'Profile',
+                        Icons.person_rounded,
+                        const Color(0xFF7C3AED),
+                        cardBg,
+                        primaryTextColor,
+                        isDark,
+                        onTap: onNavigateToProfile,
                       ),
                     ],
                   ),

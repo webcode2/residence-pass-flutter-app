@@ -14,7 +14,7 @@ void main() {
       expect(find.text(label), findsWidgets);
     }
     expect(find.byTooltip('Contact gatehouse'), findsNothing);
-    expect(find.byTooltip('New Pass'), findsOneWidget);
+    expect(find.byTooltip('New Token'), findsOneWidget);
     expect(find.byType(SosHoldButton), findsNothing);
     expect(find.text('Bills'), findsNothing);
     expect(find.text('Pay Dues'), findsNothing);
@@ -25,7 +25,7 @@ void main() {
     expect(find.byType(SosHoldButton), findsNothing);
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
-    expect(find.text('Invite Guest'), findsOneWidget);
+    expect(find.text('Registered visitors'), findsOneWidget);
     expect(find.byType(SosHoldButton), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());

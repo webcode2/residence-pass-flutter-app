@@ -137,7 +137,7 @@ void main() {
 
   testWidgets('guards cannot initiate conversations', (tester) async {
     await tester.pumpWidget(MaterialApp(
-        home: ChatScreen(isGuard: true, service: FakeChatService())));
+        home: GateChatThreadScreen(isGuard: true, service: FakeChatService())));
     await tester.pumpAndSettle();
     expect(find.text('New chat'), findsNothing);
     expect(find.text('No conversations yet.'), findsOneWidget);
