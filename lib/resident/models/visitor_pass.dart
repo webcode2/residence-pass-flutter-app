@@ -58,6 +58,13 @@ class VisitorPass {
             : parseTime(json['bookout_expires_at']),
       );
 
+  bool get hasExitCode => bookoutCode?.isNotEmpty ?? false;
+
+  bool get hasActiveExitCode =>
+      status == VisitorStatus.checkedIn &&
+      hasExitCode &&
+      (bookoutExpiresAt?.isAfter(DateTime.now()) ?? false);
+
   String get activityCode =>
       status == VisitorStatus.checkedOut && bookoutCode != null
           ? bookoutCode!

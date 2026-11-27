@@ -13,6 +13,7 @@ class GuestTokenField extends StatelessWidget {
     required this.focusNode,
     required this.readOnly,
     required this.onChanged,
+    this.onSubmitted,
   });
 
   // The backend can issue eight-character entry and exit tokens.
@@ -35,6 +36,7 @@ class GuestTokenField extends StatelessWidget {
   final FocusNode focusNode;
   final bool readOnly;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -134,6 +136,7 @@ class GuestTokenField extends StatelessWidget {
                           ),
                           decoration: null,
                           onChanged: onChanged,
+                          onSubmitted: onSubmitted,
                         ),
                       ),
                     ),

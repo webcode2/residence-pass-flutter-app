@@ -129,16 +129,14 @@ class IncidentReportWidgetState extends State<IncidentReportWidget> {
                   controller: _title,
                   enabled: !_busy,
                   maxLength: 120,
-                  decoration:
-                      authInput('Short title', Icons.report_outlined),
+                  decoration: authInput('Short title', Icons.report_outlined),
                   validator: (v) => _required(v, 3, 'Title')),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _location,
                   enabled: !_busy,
                   maxLength: 200,
-                  decoration:
-                      authInput('Location', Icons.location_on_outlined),
+                  decoration: authInput('Location', Icons.location_on_outlined),
                   validator: (v) => _required(v, 2, 'Location')),
               const SizedBox(height: 12),
               TextFormField(
@@ -159,16 +157,16 @@ class IncidentReportWidgetState extends State<IncidentReportWidget> {
                   ButtonSegment(value: 'high', label: Text('High')),
                 ],
                 selected: {_severity},
-                onSelectionChanged: _busy
-                    ? null
-                    : (s) => setState(() => _severity = s.first),
+                onSelectionChanged:
+                    _busy ? null : (s) => setState(() => _severity = s.first),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Hide my name from the caretaker'),
+                title: const Text('Report anonymously'),
+                subtitle: const Text(
+                    'Authorized estate staff can still see who filed the report.'),
                 value: _anonymous,
-                onChanged:
-                    _busy ? null : (v) => setState(() => _anonymous = v),
+                onChanged: _busy ? null : (v) => setState(() => _anonymous = v),
               ),
               const SizedBox(height: 12),
               if (_error != null) AuthError(_error!),
@@ -180,8 +178,7 @@ class IncidentReportWidgetState extends State<IncidentReportWidget> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child:
-                              CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Send report')),
             ],
           ),

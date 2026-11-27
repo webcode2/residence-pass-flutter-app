@@ -22,6 +22,18 @@ class _GateChatListScreenState extends State<GateChatListScreen> {
   final _search = TextEditingController();
   final _searchFocus = FocusNode();
   final _unreadOnly = ValueNotifier<bool>(false);
+  bool _searchOpen = false;
+
+  void _openSearch() {
+    setState(() => _searchOpen = true);
+    _searchFocus.requestFocus();
+  }
+
+  void _closeSearch() {
+    _searchFocus.unfocus();
+    _search.clear();
+    setState(() => _searchOpen = false);
+  }
 
   @override
   void dispose() {
@@ -77,8 +89,7 @@ class _GateChatListScreenState extends State<GateChatListScreen> {
               IconButton(
                 tooltip: 'Search chats',
                 icon: const Icon(Icons.search_rounded),
-                onPressed: () =>
-                    FocusScope.of(context).requestFocus(_searchFocus),
+                onPressed: _openSearch,
               ),
               PopupMenuButton<int>(
                 tooltip: 'More chat options',
@@ -155,25 +166,33 @@ class _GateChatListScreenState extends State<GateChatListScreen> {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
         child: Column(
           children: [
-            TextField(
-              controller: _search,
-              focusNode: _searchFocus,
-              style: TextStyle(color: palette.textPrimary, fontSize: 15),
-              decoration: InputDecoration(
-                hintText: 'Search chats',
-                hintStyle: TextStyle(color: Colors.white.withAlpha(180)),
-                prefixIcon: const Icon(Icons.search_rounded,
-                    color: Colors.white70, size: 22),
-                filled: true,
-                fillColor: palette.searchFill,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(22),
-                  borderSide: BorderSide.none,
+            if (_searchOpen) ...[
+              TextField(
+                controller: _search,
+                focusNode: _searchFocus,
+                style: TextStyle(color: palette.textPrimary, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: 'Search chats',
+                  hintStyle: TextStyle(color: palette.textSecondary),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: palette.textSecondary, size: 22),
+                  suffixIcon: IconButton(
+                    tooltip: 'Close search',
+                    icon: const Icon(Icons.close_rounded),
+                    color: palette.textSecondary,
+                    onPressed: _closeSearch,
+                  ),
+                  filled: true,
+                  fillColor: palette.searchFill,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
             Row(
               children: [
                 Expanded(

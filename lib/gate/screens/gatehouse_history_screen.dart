@@ -17,6 +17,7 @@ class _GatehouseHistoryScreenState extends State<GatehouseHistoryScreen> {
   final _store = GatehouseStore.instance;
   int _selectedFilter = 0;
   String _searchQuery = '';
+  bool _searchOpen = false;
   bool _initialLoad = true;
 
   @override
@@ -120,7 +121,8 @@ class _GatehouseHistoryScreenState extends State<GatehouseHistoryScreen> {
               FilledButton(
                 style: FilledButton.styleFrom(
                     backgroundColor: palette.action,
-                    foregroundColor: palette.dark ? TokenTheme.darkBg : Colors.white,
+                    foregroundColor:
+                        palette.dark ? TokenTheme.darkBg : Colors.white,
                     minimumSize: const Size(0, 48)),
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Done'),
@@ -166,46 +168,83 @@ class _GatehouseHistoryScreenState extends State<GatehouseHistoryScreen> {
                 padding: const EdgeInsets.fromLTRB(TokenTheme.pageSidePadding,
                     16, TokenTheme.pageSidePadding, 96),
                 children: [
-                  TextField(
-                    onChanged: (value) => setState(() => _searchQuery = value),
-                    style: TextStyle(color: palette.ink),
-                    decoration: InputDecoration(
-                      labelText: 'Search gate logs',
-                      hintText: 'Visitor, host, unit or token',
-                      labelStyle: TextStyle(color: palette.muted),
-                      prefixIcon: Icon(Icons.search, color: palette.muted),
-                      filled: true,
-                      fillColor: palette.surface,
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: palette.line)),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              BorderSide(color: palette.accent, width: 2)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
+                  Row(
                     children: [
-                      for (var i = 0; i < filters.length; i++)
-                        ChoiceChip(
-                          label: Text(filters[i]),
-                          selected: _selectedFilter == i,
-                          onSelected: (_) =>
-                              setState(() => _selectedFilter = i),
-                          backgroundColor: palette.surface,
-                          selectedColor: palette.tint,
-                          checkmarkColor: palette.accent,
-                          labelStyle: TextStyle(color: palette.ink),
-                          side: BorderSide(
-                              color: _selectedFilter == i
-                                  ? palette.accent
-                                  : palette.line),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (var i = 0; i < filters.length; i++)
+                                Padding(
+                                  padding:
+                                      EdgeInsets.only(left: i == 0 ? 0 : 6),
+                                  child: ChoiceChip(
+                                    label: Text(filters[i]),
+                                    labelPadding: EdgeInsets.zero,
+                                    visualDensity: VisualDensity.compact,
+                                    showCheckmark: false,
+                                    selected: _selectedFilter == i,
+                                    onSelected: (_) =>
+                                        setState(() => _selectedFilter = i),
+                                    backgroundColor: palette.surface,
+                                    selectedColor: palette.tint,
+                                    labelStyle: TextStyle(
+                                        color: palette.ink, fontSize: 12),
+                                    side: BorderSide(
+                                      color: _selectedFilter == i
+                                          ? palette.accent
+                                          : palette.line,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.outlined(
+                        tooltip: 'Search gate logs',
+                        onPressed: () => setState(() => _searchOpen = true),
+                        icon: const Icon(Icons.search),
+                      ),
                     ],
                   ),
+                  if (_searchOpen) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      autofocus: true,
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value),
+                      style: TextStyle(color: palette.ink),
+                      decoration: InputDecoration(
+                        labelText: 'Search gate logs',
+                        hintText: 'Visitor, host, unit or token',
+                        labelStyle: TextStyle(color: palette.muted),
+                        suffixIcon: IconButton(
+                          tooltip: 'Close search',
+                          color: palette.muted,
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            FocusScope.of(context).unfocus();
+                            setState(() {
+                              _searchQuery = '';
+                              _searchOpen = false;
+                            });
+                          },
+                        ),
+                        filled: true,
+                        fillColor: palette.surface,
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: palette.line)),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                BorderSide(color: palette.accent, width: 2)),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   if (_store.historyError != null)
                     Container(

@@ -13,7 +13,16 @@ import 'package:estate/gate/state/gate_visitor_store.dart';
 class GatehouseHomeScreen extends StatefulWidget {
   final bool isDark;
 
-  const GatehouseHomeScreen({super.key, required this.isDark});
+  final Future<VerificationResult> Function(String)? previewToken;
+  final Future<VerificationResult> Function(String, VerificationResult)?
+      approveToken;
+
+  const GatehouseHomeScreen({
+    super.key,
+    required this.isDark,
+    this.previewToken,
+    this.approveToken,
+  });
 
   @override
   State<GatehouseHomeScreen> createState() => _GatehouseHomeScreenState();
@@ -25,6 +34,10 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
   VerificationResult? _lastResult;
   String? _verificationError;
   bool _isVerifying = false;
+  bool _isApproving = false;
+
+  bool get _hasPreview =>
+      _lastResult?.canCheckIn == true || _lastResult?.canBookOut == true;
 
   /// Minimum chars before the guard can tap Verify (security requirement: always 4)
   static const int minVerifyLength = 4;
@@ -46,25 +59,34 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
     _focusNode.requestFocus();
   }
 
-  Future<void> _triggerVerification(String code) async {
+  Future<void> _triggerVerification(String code,
+      {VerificationResult? approval}) async {
     if (code.trim().length < minVerifyLength || _isVerifying) return;
+    if (approval == null && _lastResult != null) return;
+    final session = AuthService.instance.accessToken;
     HapticFeedback.mediumImpact();
     _focusNode.unfocus();
     setState(() {
       _isVerifying = true;
+      _isApproving = approval != null;
       _lastResult = null;
       _verificationError = null;
     });
     try {
-      final result = await GatehouseStore.instance.verifyAccess(code);
-      if (!mounted) return;
+      final store = GatehouseStore.instance;
+      final result = approval == null
+          ? await (widget.previewToken ?? store.previewAccess)(code)
+          : await (widget.approveToken ?? store.approveAccess)(code, approval);
+      if (!mounted || AuthService.instance.accessToken != session) return;
       setState(() => _lastResult = result);
     } catch (e) {
-      if (mounted) {
+      if (mounted && AuthService.instance.accessToken == session) {
         setState(() {
           _verificationError = e is VisitorApiError
               ? e.message
-              : 'Unable to verify the token. Please try again.';
+              : (_isApproving
+                  ? 'Unable to confirm approval. Look up the token again.'
+                  : 'Unable to look up the token. Please try again.');
         });
       }
     } finally {
@@ -212,7 +234,8 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
                           GuestTokenField(
                             controller: _codeCtrl,
                             focusNode: _focusNode,
-                            readOnly: _isVerifying,
+                            readOnly: _isVerifying || _hasPreview,
+                            onSubmitted: _triggerVerification,
                             onChanged: (_) => setState(() {
                               _lastResult = null;
                               _verificationError = null;
@@ -229,7 +252,10 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
                                     color: palette.accent,
                                     backgroundColor: palette.tint),
                                 const SizedBox(height: 12),
-                                Text('Verifying token…',
+                                Text(
+                                    _isApproving
+                                        ? 'Recording approval…'
+                                        : 'Looking up token…',
                                     style: TextStyle(color: palette.muted)),
                               ],
                             )
@@ -272,7 +298,7 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                child: const Text('Verify token'),
+                                child: const Text('Look up token'),
                               ),
                             ),
                           ],
@@ -376,7 +402,9 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
     Color secondaryTextColor,
   ) {
     final palette = GatePalette.of(context);
-    final statusColor = res.isValid ? palette.accent : palette.danger;
+    final pending = res.canCheckIn || res.canBookOut;
+    final statusColor =
+        pending || res.isValid ? palette.accent : palette.danger;
     final host = [res.hostResident, res.hostUnit]
         .where((value) => value.trim().isNotEmpty)
         .join(' · ');
@@ -395,9 +423,11 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
           Semantics(
             liveRegion: true,
             child: GateStatus(
-              res.isValid
-                  ? (res.isBookout ? 'Exit authorized' : 'Entry authorized')
-                  : 'Access denied',
+              pending
+                  ? (res.isBookout ? 'Review exit' : 'Review entry')
+                  : res.isValid
+                      ? (res.isBookout ? 'Exit authorized' : 'Entry authorized')
+                      : 'Access denied',
               statusColor,
             ),
           ),
@@ -410,14 +440,12 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
               color: primaryTextColor,
             ),
           ),
-          if (host.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text('Host: $host',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: secondaryTextColor)),
-          ],
+          const SizedBox(height: 4),
+          Text(host.isEmpty ? 'Host name unavailable' : 'Host: $host',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: secondaryTextColor)),
           const SizedBox(height: 8),
           Text(
             res.message,
@@ -428,15 +456,33 @@ class _GatehouseHomeScreenState extends State<GatehouseHomeScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _onClear,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: palette.accent,
-              side: BorderSide(color: palette.line),
-              minimumSize: const Size(double.infinity, 48),
+          if (pending)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                      onPressed: _onClear, child: const Text('Cancel')),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () =>
+                        _triggerVerification(_codeCtrl.text, approval: res),
+                    child: const Text('Approve'),
+                  ),
+                ),
+              ],
+            )
+          else
+            OutlinedButton(
+              onPressed: _onClear,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: palette.accent,
+                side: BorderSide(color: palette.line),
+                minimumSize: const Size(double.infinity, 48),
+              ),
+              child: const Text('Enter next token'),
             ),
-            child: const Text('Enter next token'),
-          ),
         ],
       ),
     );

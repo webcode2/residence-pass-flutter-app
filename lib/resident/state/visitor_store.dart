@@ -97,17 +97,23 @@ class VisitorStore extends ChangeNotifier {
   }
 
   /// The server issues the book-out code.
-  Future<String> generateBookOutCode(String passId) async {
+  Future<VisitorPass> generateBookOutCode(VisitorPass current) async {
     if (!VisitorApi.isLive) {
       throw Exception(
           'Sign in to the estate server. Exit codes are issued by the server.');
     }
-    final row =
-        await VisitorApi.request('tokens/visitor/$passId/book-out', body: {});
-    final pass = _passes.firstWhere((p) => p.id == passId);
+    final token = AuthService.instance.accessToken;
+    final row = await VisitorApi.request(
+        'tokens/visitor/${current.id}/book-out',
+        body: {});
+    if (token != AuthService.instance.accessToken) {
+      throw StateError('Your session changed. Open this pass again.');
+    }
+    final pass =
+        _passes.firstWhere((p) => p.id == current.id, orElse: () => current);
     pass.bookoutCode = row['bookout_code'];
     pass.bookoutExpiresAt = VisitorPass.parseTime(row['expires_at']);
     notifyListeners();
-    return pass.bookoutCode!;
+    return pass;
   }
 }

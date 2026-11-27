@@ -105,6 +105,9 @@ class NotificationInbox extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>> getAnnouncement(String id) =>
+      _request('/announcements/${Uri.encodeComponent(id)}');
+
   Future<void> markEventRead(Map<String, dynamic> event) async {
     final generation = _generation;
     final key = event['alert_id'] != null

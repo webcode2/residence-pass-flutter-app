@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -33,6 +35,7 @@ class FCMService with WidgetsBindingObserver {
   Stream<Map<String, dynamic>> get accessEvents => _accessEvents.stream;
   final _chatEvents = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get chatEvents => _chatEvents.stream;
+  final pendingAnnouncement = ValueNotifier<Map<String, dynamic>?>(null);
   final pendingChatThread = ValueNotifier<String?>(null);
   bool _initialized = false;
   bool _listenersReady = false;
@@ -43,6 +46,18 @@ class FCMService with WidgetsBindingObserver {
   final Set<String> _seenSOS = {};
 
   void handleChatMessage(Map<String, dynamic> data, {bool opened = false}) {
+    if (data['type'] == 'announcement') {
+      if (data['announcement_id'] is! String || data['app_id'] is! String) {
+        return;
+      }
+      if (opened) {
+        pendingAnnouncement.value = data;
+      } else if (AuthService.instance.isAuthenticated &&
+          data['app_id'] == AuthService.instance.appId) {
+        NotificationInbox.instance.refresh();
+      }
+      return;
+    }
     if (AuthService.instance.isAuthenticated &&
         data['app_id'] == AuthService.instance.appId &&
         data['type'] != 'estate_settings_changed') {
@@ -108,6 +123,7 @@ class FCMService with WidgetsBindingObserver {
       NotificationInbox.instance.clear();
       _userAuthToken = null;
       _appId = null;
+      pendingAnnouncement.value = null;
       pendingSOS.value = null;
       pendingSOSReport.value = null;
       _seenSOS.clear();
@@ -136,6 +152,28 @@ class FCMService with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _showAndroidAnnouncement(RemoteMessage message) async {
+    final data = message.data;
+    final notification = message.notification;
+    if (kIsWeb ||
+        defaultTargetPlatform != TargetPlatform.android ||
+        data['type'] != 'announcement' ||
+        notification == null ||
+        !AuthService.instance.isAuthenticated ||
+        data['app_id'] != AuthService.instance.appId) {
+      return;
+    }
+    try {
+      await const MethodChannel('residence/announcements').invokeMethod<void>(
+        'show',
+        {...data, 'title': notification.title, 'body': notification.body},
+      );
+    } catch (e) {
+      developer.log('Unable to display announcement',
+          error: e, name: 'FCMService');
+    }
+  }
+
   /// Initialize Firebase Messaging, request permissions, get initial token, and listen to token rotation
   Future<void> initialize({String? initialAuthToken}) async {
     _userAuthToken = initialAuthToken ?? _userAuthToken;
@@ -152,11 +190,29 @@ class FCMService with WidgetsBindingObserver {
           alert: true, badge: true, sound: true);
       if (!_listenersReady) {
         _listenersReady = true;
-        FirebaseMessaging.onMessage
-            .listen((message) => handleChatMessage(message.data));
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+          const channel = MethodChannel('residence/announcements');
+          channel.setMethodCallHandler((call) async {
+            if (call.method == 'opened') {
+              handleChatMessage(
+                  Map<String, dynamic>.from(call.arguments as Map),
+                  opened: true);
+            }
+          });
+          final launch =
+              await channel.invokeMapMethod<String, dynamic>('takeLaunch');
+          if (launch != null) handleChatMessage(launch, opened: true);
+        }
+        FirebaseMessaging.onMessage.listen((message) {
+          handleChatMessage(message.data);
+          unawaited(_showAndroidAnnouncement(message));
+        });
         FirebaseMessaging.onMessageOpenedApp
             .listen((message) => handleChatMessage(message.data, opened: true));
       }
+      final initial = await _messaging.getInitialMessage();
+      if (initial != null) handleChatMessage(initial.data, opened: true);
+
       // 1. Request notification permissions
       final NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
@@ -188,10 +244,9 @@ class FCMService with WidgetsBindingObserver {
         await syncTokenWithBackend(newToken);
       });
 
-      final initial = await _messaging.getInitialMessage();
-      if (initial != null) handleChatMessage(initial.data, opened: true);
       // Live SOS rings natively (call-style) when the app is closed; "Respond" opens it here.
-      AlarmService.onAlertOpened((alert) => handleChatMessage(alert, opened: true));
+      AlarmService.onAlertOpened(
+          (alert) => handleChatMessage(alert, opened: true));
       final ringing = await AlarmService.takeLaunchAlert();
       if (ringing != null) handleChatMessage(ringing, opened: true);
     } catch (e, stack) {

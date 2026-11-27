@@ -1,5 +1,6 @@
 import 'package:estate/shared/auth/auth_service.dart';
 import 'package:estate/gate/gate_app.dart';
+import 'package:estate/gate/state/gatehouse_store.dart';
 import 'package:estate/gate/screens/gatehouse_home_screen.dart';
 import 'package:estate/shared/ui/widgets/sos_hold_button.dart';
 import 'package:flutter/material.dart';
@@ -136,24 +137,65 @@ void main() {
         isNull);
   });
 
-  testWidgets('Done leaves the token unsubmitted and Verify shows error inline',
+  testWidgets('keyboard and cancel never approve, and Approve submits once',
       (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: GatehouseHomeScreen(isDark: false),
+    var lookups = 0;
+    var approvals = 0;
+    VerificationResult result({required bool approved}) => VerificationResult(
+          isFound: true,
+          isValid: approved,
+          visitorName: 'Fixture Visitor',
+          hostResident: 'Fixture Host',
+          hostUnit: '',
+          message: approved ? 'Entry recorded' : 'Confirm entry',
+          canCheckIn: !approved,
+          canBookOut: false,
+        );
+    await tester.pumpWidget(MaterialApp(
+      home: GatehouseHomeScreen(
+        isDark: false,
+        previewToken: (code) async {
+          expect(code, '00a742');
+          lookups++;
+          return result(approved: false);
+        },
+        approveToken: (code, preview) async {
+          expect(code, '00a742');
+          expect(preview.canCheckIn, isTrue);
+          approvals++;
+          return result(approved: true);
+        },
+      ),
     ));
     final field = find.byType(TextField);
     await tester.enterText(field, '00a742');
-    await tester.pumpAndSettle();
-
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    final error = find.textContaining('Sign in to verify access');
-    expect(error, findsNothing);
+    expect(find.text('Host: Fixture Host'), findsOneWidget);
+    expect(find.text('Fixture Visitor'), findsOneWidget);
+    expect(find.text('Entry authorized'), findsNothing);
+    expect(lookups, 1);
+    expect(approvals, 0);
 
-    await tester.tap(find.text('Verify token'));
+    await tester.ensureVisible(find.text('Cancel'));
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
-    expect(error, findsOneWidget);
-    expect(tester.widget<TextField>(field).controller!.text, '00a742');
-    expect(tester.takeException(), isNull);
+    expect(tester.widget<TextField>(field).controller!.text, isEmpty);
+    expect(lookups, 1);
+    expect(approvals, 0);
+
+    await tester.enterText(field, '00a742');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Look up token'));
+    await tester.tap(find.text('Look up token'));
+    await tester.pumpAndSettle();
+    expect(lookups, 2);
+    expect(approvals, 0);
+    await tester.ensureVisible(find.text('Approve'));
+    await tester.tap(find.text('Approve'));
+    await tester.pumpAndSettle();
+    expect(approvals, 1);
+    expect(find.text('Entry authorized'), findsOneWidget);
+    expect(find.text('Host: Fixture Host'), findsOneWidget);
   });
 }

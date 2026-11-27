@@ -43,7 +43,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField, 'Details'),
         'Light has been out since Monday.');
     await tester.tap(find.text('High'));
-    await tester.tap(find.text('Hide my name from the caretaker'));
+    await tester.tap(find.text('Report anonymously'));
     await tester.pump();
     await tester.ensureVisible(find.text('Send report'));
     await tester.tap(find.text('Send report'));

@@ -336,7 +336,7 @@ class HomeDashboardScreen extends StatelessWidget {
                                   style: TextStyle(color: secondaryTextColor)));
                         }
                         return Column(children: [
-                          for (final pass in passes.take(3))
+                          for (final pass in passes.take(7))
                             _buildActivityItem(
                                 pass.statusLabel,
                                 pass.activitySummary,

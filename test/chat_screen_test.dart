@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:estate/gate/screens/gate_chat_thread_screen.dart';
 import 'package:estate/gate/ui/whatsapp_chat_tile.dart';
 import 'package:estate/resident/screens/chat_screen.dart';
@@ -10,13 +12,23 @@ import 'package:flutter_test/flutter_test.dart';
 class FakeChatService extends ChatService {
   int reads = 0;
   bool failSend = false;
+  Map<String, dynamic>? createdThread;
   @override
   Future<dynamic> request(String path, {Map<String, dynamic>? body}) async {
     if (body != null) {
       if (failSend) throw Exception('Unable to send');
+      if (path == 'threads') {
+        createdThread = body;
+        return {'id': 'thread-1'};
+      }
       return {};
     }
     reads++;
+    if (path == 'gates') {
+      return [
+        {'id': 'north', 'name': 'North gate'}
+      ];
+    }
     if (path.startsWith('threads/')) {
       return {
         'id': 'thread-1',
@@ -27,6 +39,22 @@ class FakeChatService extends ChatService {
       };
     }
     return <dynamic>[];
+  }
+}
+
+class DelayedChatService extends FakeChatService {
+  final pending = <Completer<Map<String, dynamic>>>[];
+  final submitted = <Map<String, dynamic>>[];
+
+  @override
+  Future<dynamic> request(String path, {Map<String, dynamic>? body}) {
+    if (body == null || !path.endsWith('/messages')) {
+      return super.request(path, body: body);
+    }
+    final response = Completer<Map<String, dynamic>>();
+    pending.add(response);
+    submitted.add(body);
+    return response.future;
   }
 }
 
@@ -101,6 +129,39 @@ class GuardChatFixture extends ChatService {
 }
 
 void main() {
+  testWidgets('Resident starts a chat from the gatehouse bottom sheet',
+      (tester) async {
+    final api = FakeChatService();
+    await tester.pumpWidget(MaterialApp(home: ChatScreen(service: api)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('New chat'));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byType(BottomSheet);
+    expect(sheet, findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text('Primary gate')),
+        findsOneWidget);
+    final start = find.widgetWithText(FilledButton, 'Start chat');
+    expect(tester.widget<FilledButton>(start).onPressed, isNull);
+    await tester.enterText(
+        find.descendant(of: sheet, matching: find.byType(TextField)),
+        'Please meet me at the gate.');
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(start).onPressed, isNotNull);
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('North gate').last);
+    await tester.pumpAndSettle();
+    await tester.tap(start);
+    await tester.pumpAndSettle();
+    expect(sheet, findsNothing);
+    expect(api.createdThread, {
+      'initial_message': 'Please meet me at the gate.',
+      'is_emergency': false,
+      'gate_site_id': 'north',
+    });
+  });
+
   testWidgets('chat refreshes for matching FCM events without polling',
       (tester) async {
     final api = FakeChatService();
@@ -121,7 +182,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('failed sends preserve draft and expose retryable error',
+  testWidgets('failed sends stay in chat with tappable error details',
       (tester) async {
     final api = FakeChatService()..failSend = true;
     await tester.pumpWidget(
@@ -131,8 +192,81 @@ void main() {
     await tester.tap(find.byTooltip('Send message'));
     await tester.pumpAndSettle();
     expect(find.text('Please open the gate'), findsOneWidget);
+    final status = find.ancestor(
+      of: find.textContaining('Send failed'),
+      matching: find.byType(TextButton),
+    );
+    expect(status, findsOneWidget);
+    await tester.tap(status);
+    await tester.pumpAndSettle();
     expect(find.text('Unable to send'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('composer stays available while earlier messages are sending',
+      (tester) async {
+    final api = DelayedChatService();
+    await tester.pumpWidget(
+        MaterialApp(home: ChatScreen(threadId: 'thread-1', service: api)));
+    await tester.pumpAndSettle();
+    final field = find.byType(TextField);
+    final send = find.byWidgetPredicate(
+        (widget) => widget is IconButton && widget.tooltip == 'Send message');
+
+    await tester.enterText(field, 'First message');
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+    expect(find.text('First message'), findsOneWidget);
+    expect(find.textContaining('Sending'), findsOneWidget);
+    expect(tester.widget<TextField>(field).controller!.text, isEmpty);
+    expect(tester.widget<IconButton>(send).onPressed, isNotNull);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.enterText(field, 'Next message');
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+    expect(api.pending, hasLength(2));
+
+    api.pending[0].complete({'id': 'first'});
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Sent'), findsOneWidget);
+    expect(find.textContaining('Sending'), findsOneWidget);
+    api.pending[1].complete({'id': 'second'});
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Sent'), findsNWidgets(2));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('emergency icon in the composer toggles without sending',
+      (tester) async {
+    final api = DelayedChatService();
+    await tester.pumpWidget(
+        MaterialApp(home: ChatScreen(threadId: 'thread-1', service: api)));
+    await tester.pumpAndSettle();
+
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'Please send a guard');
+    expect(tester.widget<TextField>(field).decoration!.suffixIcon,
+        isA<IconButton>());
+    await tester.tap(find.byTooltip('Turn on emergency mode'));
+    await tester.pumpAndSettle();
+    expect(api.submitted, isEmpty);
+    expect(find.text('Emergency message'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Turn off emergency mode'));
+    await tester.pumpAndSettle();
+    expect(api.submitted, isEmpty);
+    await tester.tap(find.byTooltip('Turn on emergency mode'));
+    await tester.tap(find.byTooltip('Send message'));
+    await tester.pumpAndSettle();
+    expect(api.submitted.single, {
+      'message': 'Please send a guard',
+      'status_tag': 'EMERGENCY',
+    });
+    expect(find.byTooltip('Turn on emergency mode'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    api.pending.single.complete({'id': 'emergency'});
+    await tester.pumpAndSettle();
   });
 
   testWidgets('guards cannot initiate conversations', (tester) async {
@@ -162,8 +296,7 @@ void main() {
         find.text('A courier is arriving with a delivery for my unit.',
             findRichText: true),
         findsOneWidget);
-    expect(
-        tester.widget<Scaffold>(find.byType(Scaffold).last).backgroundColor,
+    expect(tester.widget<Scaffold>(find.byType(Scaffold).last).backgroundColor,
         TokenTheme.lightBg);
     expect(find.byTooltip('Send as emergency'), findsNothing);
     await tester.tap(find.text('CLEARED'));
@@ -180,7 +313,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('guard inbox search and unread tab filter the list', (tester) async {
+  testWidgets('guard inbox search and unread tab filter the list',
+      (tester) async {
     final api = GuardChatFixture();
     addTearDown(() => ChatService.guardUnread.value = 0);
     await tester.pumpWidget(
@@ -195,13 +329,22 @@ void main() {
       reason: 'the first row must sit below the app bar and tabs',
     );
 
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.byTooltip('Search chats'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).focusNode!.hasFocus,
+        isTrue);
     await tester.enterText(find.byType(TextField), 'Amara');
     await tester.pumpAndSettle();
     expect(find.byType(WhatsAppChatTile), findsOneWidget);
     expect(find.text('Tomi Adeyemi'), findsNothing);
     expect(find.text('Amara Nwosu'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), '');
+    await tester.tap(find.byTooltip('Close search'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byType(WhatsAppChatTile), findsNWidgets(3));
     await tester.tap(find.text('Unread'));
     await tester.pumpAndSettle();
     expect(find.byType(WhatsAppChatTile), findsNWidgets(2));

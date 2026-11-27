@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -34,6 +36,8 @@ class VisitorsScreen extends StatelessWidget {
   }
 
   void _openPassActionModal(BuildContext context, VisitorPass pass) {
+    Timer? expirationTimer;
+    var generating = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -49,8 +53,15 @@ class VisitorsScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final isCheckedIn = pass.status == VisitorStatus.checkedIn;
-            final hasBookoutCode =
-                pass.bookoutCode != null && pass.bookoutCode!.isNotEmpty;
+            final hasBookoutCode = pass.hasActiveExitCode;
+            final expired = pass.hasExitCode && !hasBookoutCode;
+            expirationTimer?.cancel();
+            if (hasBookoutCode) {
+              expirationTimer =
+                  Timer(pass.bookoutExpiresAt!.difference(DateTime.now()), () {
+                if (context.mounted) setModalState(() {});
+              });
+            }
 
             return Container(
               padding: const EdgeInsets.all(26),
@@ -168,7 +179,8 @@ class VisitorsScreen extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
+                          Expanded(
+                              child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -192,7 +204,7 @@ class VisitorsScreen extends StatelessWidget {
                                 ),
                               ),
                             ],
-                          ),
+                          )),
                           IconButton(
                             icon: const Icon(Icons.copy_rounded, size: 22),
                             color: TokenTheme.primaryMintDark,
@@ -244,12 +256,12 @@ class VisitorsScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
                                 children: [
                                   const Text(
-                                    '4-Digit Exit Passcode',
+                                    'Exit passcode',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 14.5,
@@ -263,9 +275,9 @@ class VisitorsScreen extends StatelessWidget {
                                       color: TokenTheme.primaryMintDark,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Text(
-                                      'Valid for 2h',
-                                      style: TextStyle(
+                                    child: Text(
+                                      'Until ${TimeOfDay.fromDateTime(pass.bookoutExpiresAt!).format(context)}',
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w800,
@@ -275,14 +287,20 @@ class VisitorsScreen extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 10),
-                              Text(
-                                pass.bookoutCode!.split('').join('   '),
-                                style: TextStyle(
-                                  fontFamily: 'Courier',
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  color: primaryTextColor,
-                                  letterSpacing: 3,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  pass.bookoutCode!,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w900,
+                                    color: primaryTextColor,
+                                    letterSpacing: 4,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -301,39 +319,43 @@ class VisitorsScreen extends StatelessWidget {
 
                       const SizedBox(height: 22),
 
+                      if (expired) ...[
+                        const Text(
+                            'This exit code has expired. Generate a new code when your visitor is ready to leave.'),
+                        const SizedBox(height: 12),
+                      ],
+
                       // Book Out Actions
                       Row(
                         children: [
                           if (!hasBookoutCode)
                             Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  try {
-                                    final code = await VisitorStore.instance
-                                        .generateBookOutCode(pass.id);
-                                    if (!ctx.mounted) return;
-                                    HapticFeedback.mediumImpact();
-                                    setModalState(() {
-                                      pass.bookoutCode = code;
-                                    });
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(SnackBar(
-                                              content: Text(e.toString())));
-                                    }
-                                  }
-                                },
-                                icon: const Icon(Icons.qr_code_rounded,
-                                    color: Colors.white, size: 22),
-                                label: const Text(
-                                  'Generate Exit Token',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                              child: ElevatedButton(
+                                onPressed: generating
+                                    ? null
+                                    : () async {
+                                        setModalState(() => generating = true);
+                                        try {
+                                          final updated = await VisitorStore
+                                              .instance
+                                              .generateBookOutCode(pass);
+                                          if (!context.mounted) return;
+                                          HapticFeedback.mediumImpact();
+                                          setModalState(() => pass = updated);
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(SnackBar(
+                                                    content:
+                                                        Text(e.toString())));
+                                          }
+                                        } finally {
+                                          if (context.mounted) {
+                                            setModalState(
+                                                () => generating = false);
+                                          }
+                                        }
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: TokenTheme.primaryMintDark,
                                   padding:
@@ -341,6 +363,19 @@ class VisitorsScreen extends StatelessWidget {
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16)),
                                   elevation: 0,
+                                ),
+                                child: Text(
+                                  generating
+                                      ? 'Generating…'
+                                      : expired
+                                          ? 'Generate New Exit Code'
+                                          : 'Generate Exit Code',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -390,6 +425,10 @@ class VisitorsScreen extends StatelessWidget {
                               child: IconButton(
                                 iconSize: 22,
                                 onPressed: () async {
+                                  if (!pass.hasActiveExitCode) {
+                                    setModalState(() {});
+                                    return;
+                                  }
                                   final text =
                                       'Hi ${pass.visitorName}, here is your Residence exit gate code: ${pass.bookoutCode}. Present it at the gate when leaving.';
                                   HapticFeedback.lightImpact();
@@ -426,7 +465,7 @@ class VisitorsScreen extends StatelessWidget {
           },
         );
       },
-    );
+    ).whenComplete(() => expirationTimer?.cancel());
   }
 
   @override
@@ -895,7 +934,9 @@ class VisitorsScreen extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Row(
+                      Wrap(
+                        spacing: 5,
+                        runSpacing: 3,
                         children: [
                           Text(
                             isCheckedIn ? 'Checked In' : 'Valid Pass',
@@ -904,7 +945,6 @@ class VisitorsScreen extends StatelessWidget {
                                 color: secondaryTextColor,
                                 fontWeight: FontWeight.w500),
                           ),
-                          const SizedBox(width: 5),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 4, vertical: 1),
@@ -921,8 +961,8 @@ class VisitorsScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          if (pass.bookoutCode != null) ...[
-                            const SizedBox(width: 5),
+                          if (pass.hasActiveExitCode ||
+                              (isCheckedIn && pass.hasExitCode)) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 4, vertical: 1),
@@ -932,7 +972,9 @@ class VisitorsScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                'Exit: ${pass.bookoutCode}',
+                                pass.hasActiveExitCode
+                                    ? 'Exit: ${pass.bookoutCode}'
+                                    : 'Exit code expired',
                                 style: const TextStyle(
                                   fontFamily: 'Courier',
                                   color: Color(0xFF10B981),
@@ -944,70 +986,67 @@ class VisitorsScreen extends StatelessWidget {
                           ],
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: (isCheckedIn
+                                        ? const Color(0xFF10B981)
+                                        : TokenTheme.primaryMintDark)
+                                    .withValues(alpha: 0.35),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              pass.code,
+                              style: TextStyle(
+                                fontFamily: 'Courier',
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: isCheckedIn
+                                    ? const Color(0xFF10B981)
+                                    : (isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A)),
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                          )),
                     ],
                   ),
                 ),
 
                 const SizedBox(width: 8),
 
-                // Prominent Bold Pass Code & Inline Action Button
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1E293B)
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: (isCheckedIn
-                                  ? const Color(0xFF10B981)
-                                  : TokenTheme.primaryMintDark)
-                              .withValues(alpha: 0.35),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        pass.code,
-                        style: TextStyle(
-                          fontFamily: 'Courier',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: isCheckedIn
-                              ? const Color(0xFF10B981)
-                              : (isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A)),
-                          letterSpacing: 2.0,
-                        ),
-                      ),
+                SizedBox(
+                  height: 28,
+                  child: ElevatedButton(
+                    onPressed: onTap,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isCheckedIn
+                          ? const Color(0xFF10B981)
+                          : TokenTheme.primaryMintDark,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 9),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(7)),
                     ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      height: 28,
-                      child: ElevatedButton(
-                        onPressed: onTap,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isCheckedIn
-                              ? const Color(0xFF10B981)
-                              : TokenTheme.primaryMintDark,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 9),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(7)),
-                        ),
-                        child: Text(
-                          isCheckedIn ? 'Book Out' : 'Options',
-                          style: const TextStyle(
-                              fontSize: 11.5, fontWeight: FontWeight.w800),
-                        ),
-                      ),
+                    child: Text(
+                      isCheckedIn ? 'Book Out' : 'Options',
+                      style: const TextStyle(
+                          fontSize: 11.5, fontWeight: FontWeight.w800),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),

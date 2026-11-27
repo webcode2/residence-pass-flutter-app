@@ -4,17 +4,53 @@ import 'package:estate/shared/notifications/fcm_service.dart';
 import 'package:estate/shared/ui/theme.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  const NotificationsScreen({super.key, this.announcementId});
+  final String? announcementId;
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final inbox = NotificationInbox.instance;
+  Map<String, dynamic>? _opened;
+  String? _announcementError;
+
+  String? category(Map<String, dynamic> item) {
+    final data = item['data'] as Map?;
+    if (data?['type'] != 'announcement') return null;
+    const labels = {
+      'alert': 'Alert',
+      'maintenance': 'Maintenance',
+      'security': 'Security',
+    };
+    return labels[data?['category']] ?? 'Announcement';
+  }
+
+  Future<void> _loadAnnouncement() async {
+    final id = widget.announcementId;
+    if (id == null) return;
+    try {
+      final item = await inbox.getAnnouncement(id);
+      if (!mounted) return;
+      setState(() {
+        _opened = item;
+        _announcementError = null;
+      });
+      await read(item['id'] as String);
+      await inbox.refresh();
+    } catch (_) {
+      if (mounted) {
+        setState(
+            () => _announcementError = 'Unable to open this announcement.');
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     inbox.refresh();
+    _loadAnnouncement();
   }
 
   Future<void> read(String? id) async {
@@ -50,6 +86,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: TokenTheme.pageSidePadding, vertical: 12),
                     children: [
+                      if (_opened != null)
+                        Card(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF2B2B2B)
+                              : const Color(0xFFE7E7E7),
+                          elevation: 0,
+                          shape: const RoundedRectangleBorder(),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(category(_opened!) ?? 'Announcement'),
+                                const SizedBox(height: 8),
+                                Text(_opened!['title'] as String,
+                                    style:
+                                        Theme.of(context).textTheme.titleLarge),
+                                const SizedBox(height: 8),
+                                Text(_opened!['body'] as String),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (_announcementError != null)
+                        ListTile(
+                          title: Text(_announcementError!),
+                          trailing: TextButton(
+                            onPressed: _loadAnnouncement,
+                            child: const Text('Retry'),
+                          ),
+                        ),
+                      if (widget.announcementId != null &&
+                          _opened == null &&
+                          _announcementError == null)
+                        const LinearProgressIndicator(),
                       if (inbox.loading && inbox.items.isEmpty)
                         const Center(child: CircularProgressIndicator()),
                       if (inbox.error != null)
@@ -74,16 +145,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   : Icons.notifications_active_outlined,
                               color: item['is_read'] == true
                                   ? null
-                                  : Theme.of(context).brightness == Brightness.dark
-                                       ? TokenTheme.darkAccent
-                                       : TokenTheme.primaryMint),
+                                  : Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? TokenTheme.darkAccent
+                                      : TokenTheme.primaryMint),
                           title: Text(item['title'] as String,
                               style: TextStyle(
                                   fontWeight: item['is_read'] == true
                                       ? FontWeight.normal
                                       : FontWeight.bold)),
                           subtitle: Text(
-                              '${item['body']}\n${DateTime.tryParse(item['created_at'] as String)?.toLocal().toString().split('.').first ?? ''}'),
+                              '${category(item) == null ? '' : '${category(item)}\n'}${item['body']}\n${DateTime.tryParse(item['created_at'] as String)?.toLocal().toString().split('.').first ?? ''}'),
                           isThreeLine: true,
                           onTap: () async {
                             await read(item['id'] as String);

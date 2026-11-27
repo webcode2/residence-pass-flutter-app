@@ -145,7 +145,9 @@ class AllActivePassesScreen extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 2),
-                                    Row(
+                                    Wrap(
+                                      spacing: 5,
+                                      runSpacing: 3,
                                       children: [
                                         Text(
                                           isCheckedIn
@@ -156,7 +158,6 @@ class AllActivePassesScreen extends StatelessWidget {
                                               color: secondaryTextColor,
                                               fontWeight: FontWeight.w500),
                                         ),
-                                        const SizedBox(width: 5),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 4, vertical: 1),
@@ -177,8 +178,9 @@ class AllActivePassesScreen extends StatelessWidget {
                                             ),
                                           ),
                                         ),
-                                        if (pass.bookoutCode != null) ...[
-                                          const SizedBox(width: 5),
+                                        if (pass.hasActiveExitCode ||
+                                            (isCheckedIn &&
+                                                pass.hasExitCode)) ...[
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 4, vertical: 1),
@@ -189,7 +191,9 @@ class AllActivePassesScreen extends StatelessWidget {
                                                   BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              'Exit: ${pass.bookoutCode}',
+                                              pass.hasActiveExitCode
+                                                  ? 'Exit: ${pass.bookoutCode}'
+                                                  : 'Exit code expired',
                                               style: const TextStyle(
                                                 fontFamily: 'Courier',
                                                 color: Color(0xFF10B981),
@@ -201,74 +205,73 @@ class AllActivePassesScreen extends StatelessWidget {
                                         ],
                                       ],
                                     ),
+                                    const SizedBox(height: 4),
+                                    FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? const Color(0xFF1E293B)
+                                                : const Color(0xFFF1F5F9),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: (isCheckedIn
+                                                      ? const Color(0xFF10B981)
+                                                      : TokenTheme
+                                                          .primaryMintDark)
+                                                  .withValues(alpha: 0.35),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            pass.code,
+                                            style: TextStyle(
+                                              fontFamily: 'Courier',
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w900,
+                                              color: isCheckedIn
+                                                  ? const Color(0xFF10B981)
+                                                  : (isDark
+                                                      ? Colors.white
+                                                      : const Color(
+                                                          0xFF0F172A)),
+                                              letterSpacing: 2.0,
+                                            ),
+                                          ),
+                                        )),
                                   ],
                                 ),
                               ),
 
                               const SizedBox(width: 8),
 
-                              // Prominent Bold Pass Code & Inline Action Button
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
+                              SizedBox(
+                                height: 28,
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      onOpenPassModal(context, pass),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isCheckedIn
+                                        ? const Color(0xFF10B981)
+                                        : TokenTheme.primaryMintDark,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? const Color(0xFF1E293B)
-                                          : const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: (isCheckedIn
-                                                ? const Color(0xFF10B981)
-                                                : TokenTheme.primaryMintDark)
-                                            .withValues(alpha: 0.35),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      pass.code,
-                                      style: TextStyle(
-                                        fontFamily: 'Courier',
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w900,
-                                        color: isCheckedIn
-                                            ? const Color(0xFF10B981)
-                                            : (isDark
-                                                ? Colors.white
-                                                : const Color(0xFF0F172A)),
-                                        letterSpacing: 2.0,
-                                      ),
-                                    ),
+                                        horizontal: 9),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(7)),
                                   ),
-                                  const SizedBox(width: 8),
-                                  SizedBox(
-                                    height: 28,
-                                    child: ElevatedButton(
-                                      onPressed: () =>
-                                          onOpenPassModal(context, pass),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isCheckedIn
-                                            ? const Color(0xFF10B981)
-                                            : TokenTheme.primaryMintDark,
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 9),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(7)),
-                                      ),
-                                      child: Text(
-                                        isCheckedIn ? 'Book Out' : 'Options',
-                                        style: const TextStyle(
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w800),
-                                      ),
-                                    ),
+                                  child: Text(
+                                    isCheckedIn ? 'Book Out' : 'Options',
+                                    style: const TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800),
                                   ),
-                                ],
+                                ),
                               ),
                             ],
                           ),

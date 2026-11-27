@@ -104,10 +104,12 @@ class _SharedChatScreenState extends State<SharedChatScreen>
   final _scroll = ScrollController();
   List<dynamic> _threads = [];
   Map<String, dynamic>? _thread;
+  final _outbox = <Map<String, dynamic>>[];
   String? _error;
   bool _loading = true, _refreshing = false, _sending = false;
   StreamSubscription<Map<String, dynamic>>? _events;
   bool _reloadRequested = false;
+  bool _emergencyMode = false;
   String? _token;
 
   @override
@@ -139,6 +141,8 @@ class _SharedChatScreenState extends State<SharedChatScreen>
       setState(() {
         _threads = [];
         _thread = null;
+        _outbox.clear();
+        _emergencyMode = false;
         _text.clear();
       });
       _load();
@@ -168,6 +172,11 @@ class _SharedChatScreenState extends State<SharedChatScreen>
           }
         } else {
           _thread = Map<String, dynamic>.from(result as Map);
+          final ids = (_thread!['messages'] as List? ?? [])
+              .map((message) => message['id'])
+              .whereType<String>()
+              .toSet();
+          _outbox.removeWhere((message) => ids.contains(message['id']));
         }
         _error = null;
       });
@@ -221,49 +230,76 @@ class _SharedChatScreenState extends State<SharedChatScreen>
     String draft = '';
     String? gate;
     bool emergency = false;
-    final body = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-            builder: (context, update) => AlertDialog(
-                  title: const Text('Contact gatehouse'),
-                  content: SingleChildScrollView(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    DropdownButtonFormField<String>(
-                        initialValue: gate,
-                        decoration: const InputDecoration(labelText: 'Gate'),
-                        hint: const Text('Primary gate'),
-                        items: gates
-                            .map((g) => DropdownMenuItem<String>(
-                                value: g['id'] as String,
-                                child: Text(g['name'] as String)))
-                            .toList(),
-                        onChanged: (value) => update(() => gate = value)),
-                    TextField(
-                        maxLength: 4000,
-                        maxLines: 4,
-                        decoration: const InputDecoration(labelText: 'Message'),
-                        onChanged: (value) => update(() => draft = value)),
-                    CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Emergency'),
-                        value: emergency,
-                        onChanged: (v) => update(() => emergency = v ?? false)),
-                  ])),
-                  actions: [
+    final body = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+                24, 0, 24, 24 + MediaQuery.viewInsetsOf(context).bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Contact gatehouse',
+                    style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: gate,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Gate'),
+                  hint: const Text('Primary gate'),
+                  items: gates
+                      .map((g) => DropdownMenuItem<String>(
+                          value: g['id'] as String,
+                          child: Text(g['name'] as String,
+                              overflow: TextOverflow.ellipsis)))
+                      .toList(),
+                  onChanged: (value) => update(() => gate = value),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  maxLength: 4000,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Message'),
+                  onChanged: (value) => update(() => draft = value),
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Emergency'),
+                  value: emergency,
+                  onChanged: (v) => update(() => emergency = v ?? false),
+                ),
+                const SizedBox(height: 12),
+                OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  spacing: 8,
+                  children: [
                     TextButton(
                         onPressed: () => Navigator.pop(context),
                         child: const Text('Cancel')),
                     FilledButton(
-                        onPressed: draft.trim().isEmpty
-                            ? null
-                            : () => Navigator.pop(context, {
-                                  'initial_message': draft.trim(),
-                                  'is_emergency': emergency,
-                                  if (gate != null) 'gate_site_id': gate
-                                }),
-                        child: const Text('Start chat'))
+                      onPressed: draft.trim().isEmpty
+                          ? null
+                          : () => Navigator.pop(context, {
+                                'initial_message': draft.trim(),
+                                'is_emergency': emergency,
+                                if (gate != null) 'gate_site_id': gate,
+                              }),
+                      child: const Text('Start chat'),
+                    ),
                   ],
-                )));
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
     if (body == null || !mounted) return;
     setState(() => _sending = true);
     try {
@@ -279,25 +315,61 @@ class _SharedChatScreenState extends State<SharedChatScreen>
   void _notice(Object e) => ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
 
-  Future<void> _send({String? text, String? tag, bool resolve = false}) async {
-    if (_sending || (!resolve && (text ?? _text.text).trim().isEmpty)) return;
-    final draft = _text.text;
+  Future<void> _send({String? text, String? tag}) async {
+    final message = (text ?? _text.text).trim();
+    if (_sending || message.isEmpty) return;
+    final statusTag = tag ?? (_emergencyMode ? 'EMERGENCY' : null);
+    final body = <String, dynamic>{
+      'message': message,
+      if (statusTag != null) 'status_tag': statusTag,
+    };
+    final outgoing = <String, dynamic>{
+      ...body,
+      'created_at': DateTime.now().toIso8601String(),
+      'local_status': 'Sending',
+    };
+    setState(() {
+      _outbox.add(outgoing);
+      if (text == null) {
+        _text.clear();
+        _emergencyMode = false;
+      }
+    });
+    _scrollToEnd();
+
+    try {
+      final result = await _api.request('threads/${widget.threadId}/messages',
+          body: body) as Map;
+      if (!mounted || !_outbox.contains(outgoing)) return;
+      setState(() {
+        outgoing.addAll(Map<String, dynamic>.from(result));
+        outgoing['local_status'] = 'Sent';
+        final id = outgoing['id'];
+        if (id != null &&
+            (_thread?['messages'] as List? ?? [])
+                .any((message) => message['id'] == id)) {
+          _outbox.remove(outgoing);
+        }
+      });
+      await _load();
+    } catch (e) {
+      if (!mounted || !_outbox.contains(outgoing)) return;
+      setState(() {
+        outgoing['local_status'] = 'Send failed';
+        outgoing['send_error'] = e;
+      });
+    }
+  }
+
+  Future<void> _resolve() async {
+    if (_sending) return;
+    final token = _token;
     setState(() => _sending = true);
     try {
-      await _api.request(
-          'threads/${widget.threadId}/${resolve ? 'resolve' : 'messages'}',
-          body: resolve
-              ? {}
-              : {
-                  'message': (text ?? draft).trim(),
-                  if (tag != null) 'status_tag': tag
-                });
-      if (!mounted) return;
-      if (!resolve && text == null && _text.text == draft) _text.clear();
-      await _load();
-      _scrollToEnd();
+      await _api.request('threads/${widget.threadId}/resolve', body: {});
+      if (mounted && token == _token) await _load();
     } catch (e) {
-      if (mounted) _notice(e);
+      if (mounted && token == _token) _notice(e);
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -321,7 +393,7 @@ class _SharedChatScreenState extends State<SharedChatScreen>
   Widget build(BuildContext context) {
     final detail = widget.threadId != null;
     final thread = _thread;
-    final messages = (thread?['messages'] as List?) ?? [];
+    final messages = [...(thread?['messages'] as List? ?? []), ..._outbox];
     final closed = thread?['status'] == 'closed';
     final resolved = thread?['status'] == 'resolved';
     // A resolved thread is locked for guards until the resident replies and
@@ -337,7 +409,7 @@ class _SharedChatScreenState extends State<SharedChatScreen>
       ),
       if (detail && thread?['status'] == 'open')
         TextButton(
-          onPressed: _sending ? null : () => _send(resolve: true),
+          onPressed: _sending ? null : _resolve,
           child: const Text('Resolve'),
         ),
     ];
@@ -503,7 +575,11 @@ class _SharedChatScreenState extends State<SharedChatScreen>
         isDark ? TokenTheme.darkTint(0.18) : const Color(0xFFE7E9E6);
     final incomingBubble =
         isDark ? TokenTheme.darkCard : const Color(0xFFF0F1EF);
-    final mine = message['sender_id'] == AuthService.instance.currentUser?.id;
+    final localStatus = message['local_status'] as String?;
+    final sendError = message['send_error'];
+    final currentUserId = AuthService.instance.currentUser?.id;
+    final mine = localStatus != null ||
+        (currentUserId != null && message['sender_id'] == currentUserId);
     final time = DateTime.tryParse(message['created_at'] ?? '')?.toLocal();
     final sender = [
       message['sender_name'],
@@ -513,7 +589,7 @@ class _SharedChatScreenState extends State<SharedChatScreen>
     final metadata = [
       if (time != null)
         '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
-      if (mine) message['is_read'] == true ? 'Read' : 'Sent',
+      if (mine) localStatus ?? (message['is_read'] == true ? 'Read' : 'Sent'),
     ].join(' • ');
 
     return Align(
@@ -536,7 +612,14 @@ class _SharedChatScreenState extends State<SharedChatScreen>
               Text(message['status_tag'],
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             SelectableText(message['message'] ?? ''),
-            if (metadata.isNotEmpty)
+            if (sendError != null)
+              TextButton(
+                onPressed: () => _notice(sendError),
+                style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error),
+                child: Text(metadata),
+              )
+            else if (metadata.isNotEmpty)
               Text(metadata, style: theme.textTheme.labelSmall),
           ],
         ),
@@ -575,25 +658,29 @@ class _SharedChatScreenState extends State<SharedChatScreen>
                   maxLength: 4000,
                   minLines: 1,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                      labelText: 'Message', border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    labelText: _emergencyMode ? 'Emergency message' : 'Message',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: widget.isGuard
+                        ? null
+                        : IconButton(
+                            tooltip: _emergencyMode
+                                ? 'Turn off emergency mode'
+                                : 'Turn on emergency mode',
+                            isSelected: _emergencyMode,
+                            onPressed: () => setState(
+                                () => _emergencyMode = !_emergencyMode),
+                            icon: const Icon(Icons.emergency_outlined),
+                            selectedIcon: Icon(Icons.emergency,
+                                color: Theme.of(context).colorScheme.error),
+                          ),
+                  ),
                 ),
               ),
-              if (!widget.isGuard)
-                IconButton(
-                  tooltip: 'Send as emergency',
-                  onPressed: _sending ? null : () => _send(tag: 'EMERGENCY'),
-                  icon: const Icon(Icons.emergency_outlined),
-                ),
               IconButton(
                 tooltip: 'Send message',
                 onPressed: _sending ? null : _send,
-                icon: _sending
-                    ? const SizedBox.square(
-                        dimension: 24,
-                        child: CircularProgressIndicator(
-                            semanticsLabel: 'Sending message'))
-                    : const Icon(Icons.send),
+                icon: const Icon(Icons.send),
               ),
             ]),
           ),

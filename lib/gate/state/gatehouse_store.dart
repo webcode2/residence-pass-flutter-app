@@ -159,7 +159,7 @@ class GatehouseStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<VerificationResult> verifyAccess(String code) async {
+  Future<VerificationResult> previewAccess(String code) async {
     if (!VisitorApi.isLive) {
       throw const VisitorApiError(
           'Sign in to verify access with the estate server.');
@@ -167,22 +167,44 @@ class GatehouseStore extends ChangeNotifier {
     final row = await _guestTokens.verify(
       code,
       (normalized) => VisitorApi.request(
-        'verify/token/${Uri.encodeComponent(normalized)}',
+        'verify/token-preview/${Uri.encodeComponent(normalized)}',
       ),
     );
-    final exit = row['action'] == 'book_out';
+    return _tokenResult(row, pending: true);
+  }
+
+  Future<VerificationResult> approveAccess(
+      String code, VerificationResult preview) async {
+    if (!VisitorApi.isLive) {
+      throw const VisitorApiError('Sign in to approve access.');
+    }
+    final normalized = Uri.encodeComponent(code.trim().toUpperCase());
+    final direction = preview.isBookout ? 'exit' : 'entry';
+    final row = await VisitorApi.request(
+      'verify/token/$normalized/approve?direction=$direction',
+      body: const {},
+    );
     await GateVisitorStore.instance.refresh();
     notifyListeners();
+    return _tokenResult(row, pending: false);
+  }
+
+  VerificationResult _tokenResult(dynamic row, {required bool pending}) {
+    final exit = row['action'] == 'book_out';
     return VerificationResult(
         isFound: true,
-        isValid: row['status'] == 'authorized',
+        isValid: !pending && row['status'] == 'authorized',
         isBookout: exit,
         visitorName: row['visitor_name'] ?? 'Visitor',
-        hostResident: row['resident_id'] ?? '',
+        hostResident: row['host_name'] ?? '',
         hostUnit: '',
-        message: row['message'] ?? (exit ? 'Exit recorded' : 'Entry recorded'),
-        canCheckIn: false,
-        canBookOut: false);
+        message: pending
+            ? (exit
+                ? 'Confirm this visitor before recording exit.'
+                : 'Confirm this visitor before recording entry.')
+            : row['message'] ?? (exit ? 'Exit recorded' : 'Entry recorded'),
+        canCheckIn: pending && !exit,
+        canBookOut: pending && exit);
   }
 
   /// Mark thread messages as read

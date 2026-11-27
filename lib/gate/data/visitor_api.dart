@@ -38,7 +38,8 @@ class VisitorApi {
         .timeout(const Duration(seconds: 15));
     final data = jsonDecode(response.body);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final isTokenVerification = path.startsWith('verify/token/');
+      final isTokenVerification = path.startsWith('verify/token/') ||
+          path.startsWith('verify/token-preview/');
       final detail = data is Map && data['detail'] is String
           ? data['detail'] as String
           : 'Request failed. Please retry.';
