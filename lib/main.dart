@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:estate/firebase_options.dart';
 import 'package:estate/shared/notifications/fcm_service.dart';
+import 'package:estate/shared/notifications/notifications_screen.dart';
 import 'package:estate/shared/auth/auth_service.dart';
 import 'package:estate/shared/sos/alarm_service.dart';
 import 'package:estate/shared/sos/sos_alarm_screen.dart';
@@ -15,7 +16,7 @@ import 'package:estate/shared/auth/screens/register_screen.dart';
 import 'package:estate/shared/auth/screens/change_password_screen.dart';
 import 'package:estate/shared/auth/screens/splash_screen.dart';
 import 'package:estate/shared/ui/theme.dart';
-import 'package:estate/shared/ui/widgets/biometric_gate.dart';
+import 'package:estate/resident/security/app_lock_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +71,8 @@ class _SecurityTokenAppState extends State<SecurityTokenApp>
     AuthService.instance.currentUserNotifier
         .addListener(_onSettingsIdentityChanged);
     _onSettingsIdentityChanged();
+    FCMService.instance.pendingAnnouncement.addListener(_openAnnouncement);
+    AuthService.instance.currentUserNotifier.addListener(_openAnnouncement);
     FCMService.instance.pendingChatThread.addListener(_openPendingChat);
     FCMService.instance.pendingSOS.addListener(_openSOS);
     FCMService.instance.pendingSOSReport.addListener(_showSOSReport);
@@ -92,6 +95,36 @@ class _SecurityTokenAppState extends State<SecurityTokenApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) _refreshEstateSettings();
+  }
+
+  void _openAnnouncement() {
+    final auth = AuthService.instance;
+    if (_showSplash ||
+        !auth.isAuthenticated ||
+        auth.currentUser?.mustChangePassword == true) {
+      return;
+    }
+    final pending = FCMService.instance.pendingAnnouncement;
+    final data = pending.value;
+    if (data == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = _navigatorKey.currentState;
+      if (!mounted ||
+          navigator == null ||
+          pending.value != data ||
+          !auth.isAuthenticated ||
+          auth.currentUser?.mustChangePassword == true) {
+        return;
+      }
+      pending.value = null;
+      if (data['app_id'] != auth.appId) return;
+      navigator.push(MaterialPageRoute<void>(
+        builder: (_) => NotificationsScreen(
+          announcementId: data['announcement_id'] as String,
+        ),
+      ));
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   void _openPendingChat() {
@@ -178,6 +211,8 @@ class _SecurityTokenAppState extends State<SecurityTokenApp>
     WidgetsBinding.instance.removeObserver(this);
     AuthService.instance.currentUserNotifier
         .removeListener(_onSettingsIdentityChanged);
+    FCMService.instance.pendingAnnouncement.removeListener(_openAnnouncement);
+    AuthService.instance.currentUserNotifier.removeListener(_openAnnouncement);
     FCMService.instance.pendingChatThread.removeListener(_openPendingChat);
     FCMService.instance.pendingSOS.removeListener(_openSOS);
     FCMService.instance.pendingSOSReport.removeListener(_showSOSReport);
@@ -203,6 +238,7 @@ class _SecurityTokenAppState extends State<SecurityTokenApp>
       _showSplash = false;
     });
     _openPendingChat();
+    _openAnnouncement();
     _openSOS();
   }
 
@@ -351,7 +387,7 @@ class _SecurityTokenAppState extends State<SecurityTokenApp>
       // last AppBar set, so apply the theme's style app-wide.
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: _showSplash ? _lightOverlay : overlay,
-        child: BiometricGate(child: child ?? const SizedBox.shrink()),
+        child: ResidentLockGate(child: child ?? const SizedBox.shrink()),
       ),
       home: _showSplash
           ? SplashScreen(

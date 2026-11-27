@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:estate/shared/ui/theme.dart';
 import 'package:estate/shared/auth/auth_service.dart';
-import 'package:estate/shared/auth/biometric_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool isDark;
   final VoidCallback onToggleTheme;
 
+  /// App lock and fingerprint settings, provided by the resident app (guards have none).
+  final Widget? securityTile;
+
   const SettingsScreen({
     super.key,
     required this.isDark,
     required this.onToggleTheme,
+    this.securityTile,
   });
 
   @override
@@ -20,33 +23,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _gateArrivalAlerts = true;
   bool _bookOutAlerts = true;
-  final _biometrics = BiometricService.instance;
-  @override
-  void initState() {
-    super.initState();
-    _biometrics.addListener(_changed);
-    final user = AuthService.instance.currentUser;
-    _biometrics.bind(
-        user == null ? null : '${AuthService.instance.baseUrl}.${user.id}');
-  }
-
-  void _changed() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _biometrics.removeListener(_changed);
-    super.dispose();
-  }
-
-  Future<void> _setBiometric(bool enabled) async {
-    final accepted = await _biometrics.setEnabled(enabled);
-    if (!accepted && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_biometrics.error ?? 'Authentication cancelled.')));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
+            if (widget.securityTile != null) ...[
             const SizedBox(height: 24),
 
             // Security & Passcode
@@ -245,38 +222,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
                 clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      secondary: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color:
-                              isDark ? TokenTheme.darkAccent.withValues(alpha: 0.12) : const Color(0xFF10B981).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(Icons.fingerprint_rounded,
-                            color: isDark ? TokenTheme.darkAccent : const Color(0xFF10B981), size: 20),
-                      ),
-                      title: Text('Biometric App Lock',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: primaryTextColor,
-                              fontSize: 14.5)),
-                      subtitle: Text(
-                          'Unlock the app with biometrics or your device passcode',
-                          style: TextStyle(
-                              fontSize: 12, color: secondaryTextColor)),
-                      value: _biometrics.enabled,
-                      activeTrackColor: TokenTheme.primaryMint,
-                      onChanged: _biometrics.busy || _biometrics.loading
-                          ? null
-                          : _setBiometric,
-                    ),
-                  ],
-                ),
+                child: widget.securityTile,
               ),
             ),
+            ],
 
             const SizedBox(height: 24),
 

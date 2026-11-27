@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:estate/gate/ui/gate_style.dart';
 import 'package:estate/shared/auth/auth_service.dart';
-import 'package:estate/shared/auth/biometric_service.dart';
 import 'package:estate/shared/ui/theme.dart';
 
 /// Gatehouse-only settings. Resident notification, property and account
@@ -25,34 +24,7 @@ class _GateSettingsScreenState extends State<GateSettingsScreen> {
   bool _sosAlerts = true;
   bool _visitorAlerts = true;
   bool _chatAlerts = true;
-  final _biometrics = BiometricService.instance;
-
-  @override
-  void initState() {
-    super.initState();
-    _biometrics.addListener(_changed);
-    final user = AuthService.instance.currentUser;
-    _biometrics.bind(
-        user == null ? null : '${AuthService.instance.baseUrl}.${user.id}');
-  }
-
-  void _changed() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _biometrics.removeListener(_changed);
-    super.dispose();
-  }
-
-  Future<void> _setBiometric(bool enabled) async {
-    final accepted = await _biometrics.setEnabled(enabled);
-    if (!accepted && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_biometrics.error ?? 'Authentication cancelled.')));
-    }
-  }
+  // The gatehouse has no app lock: officers share duty phones and must reach the gate fast.
 
   void _confirmLogout() {
     showDialog(
@@ -158,21 +130,6 @@ class _GateSettingsScreenState extends State<GateSettingsScreen> {
                 'Get notified about new resident messages',
                 _chatAlerts,
                 (value) => setState(() => _chatAlerts = value),
-              ),
-            ]),
-            const SizedBox(height: 24),
-            _section('SECURITY & ACCESS CONTROL'),
-            _panel([
-              SwitchListTile(
-                secondary: Icon(Icons.fingerprint_rounded, color: palette.accent),
-                title: const Text('Biometric app lock'),
-                subtitle: const Text(
-                    'Unlock the gatehouse with biometrics or your device passcode'),
-                value: _biometrics.enabled,
-                activeThumbColor: palette.accent,
-                onChanged: _biometrics.busy || _biometrics.loading
-                    ? null
-                    : _setBiometric,
               ),
             ]),
             const SizedBox(height: 24),

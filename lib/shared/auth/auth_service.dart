@@ -13,6 +13,15 @@ enum AppViewMode {
   gatehouse,
 }
 
+/// A fingerprint sign-in key issued by the server, or the reason it was not.
+class DeviceKeyIssue {
+  final String? keyId, secret, error;
+  const DeviceKeyIssue(this.keyId, this.secret) : error = null;
+  const DeviceKeyIssue.failed(this.error)
+      : keyId = null,
+        secret = null;
+}
+
 class AuthService {
   static final AuthService instance = AuthService._internal();
   factory AuthService() => instance;
@@ -133,11 +142,13 @@ class AuthService {
       final response = await (_settingsClient?.get(uri, headers: headers) ??
               http.get(uri, headers: headers))
           .timeout(const Duration(seconds: 10));
-      if (token != _accessToken ||
-          estate != _appId ||
-          response.statusCode != 200) {
+      if (token != _accessToken || estate != _appId) return;
+      if (response.statusCode == 401 &&
+          response.headers['x-session-status'] == 'replaced') {
+        logout();
         return;
       }
+      if (response.statusCode != 200) return;
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final length = data['token_code_length'];
       if (data['app_id'] != estate ||
@@ -288,31 +299,8 @@ class AuthService {
           .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final tokenObj = data['token'];
-        _accessToken = tokenObj?['access_token'];
-        _setTokenCodeLength((data['token_code_length'] as int?) ?? 6);
-
-        final userObj = data['user'];
-        if (_accessToken == null) {
-          throw StateError('Server did not return an access token.');
-        }
-        setAppId(tenantId);
-        final user = UserModel.fromJson(userObj);
-        if (user.isGuard && !user.isResident) {
-          activeViewModeNotifier.value = AppViewMode.gatehouse;
-        } else {
-          activeViewModeNotifier.value = AppViewMode.resident;
-        }
-
-        await _persistSession(user);
-        _armExpiry();
-        currentUserNotifier.value = user;
-
-        if (_accessToken != null && !user.mustChangePassword) {
-          _syncFcmAuth(_accessToken);
-        }
-
+        final user = await _adoptSignIn(
+            jsonDecode(response.body) as Map<String, dynamic>, tenantId);
         return {
           'success': true,
           'user': user,
@@ -337,6 +325,92 @@ class AuthService {
         'success': false,
         'message':
             'Cannot reach the estate server. Check your connection and try again.'
+      };
+    }
+  }
+
+  /// Make a successful sign-in response (password or fingerprint) the current session.
+  Future<UserModel> _adoptSignIn(Map<String, dynamic> data, String tenantId) async {
+    final token = (data['token'] as Map?)?['access_token'] as String?;
+    if (token == null) {
+      throw StateError('Server did not return an access token.');
+    }
+    _accessToken = token;
+    _setTokenCodeLength((data['token_code_length'] as int?) ?? 6);
+    setAppId(tenantId);
+    final user = UserModel.fromJson(Map<String, dynamic>.from(data['user']));
+    if (user.isGuard && !user.isResident) {
+      activeViewModeNotifier.value = AppViewMode.gatehouse;
+    } else {
+      activeViewModeNotifier.value = AppViewMode.resident;
+    }
+    await _persistSession(user);
+    _armExpiry();
+    currentUserNotifier.value = user;
+    if (!user.mustChangePassword) _syncFcmAuth(_accessToken);
+    return user;
+  }
+
+  /// Turn on fingerprint sign-in for the current resident on this phone.
+  Future<DeviceKeyIssue> enrolDeviceKey(String label) async {
+    try {
+      final response = await http
+          .post(Uri.parse('$_baseUrl/api/v1/auth/device-keys'),
+              headers: {
+                'Content-Type': 'application/json',
+                'X-App-Id': _appId,
+                'Authorization': 'Bearer $_accessToken'
+              },
+              body: jsonEncode({'device_label': label}))
+          .timeout(const Duration(seconds: 15));
+      final data = _parseError(response.body);
+      if (response.statusCode != 201) {
+        return DeviceKeyIssue.failed(data['detail'] is String
+            ? data['detail'] as String
+            : 'Unable to turn on fingerprint sign-in. Please retry.');
+      }
+      return DeviceKeyIssue(data['key_id'] as String, data['secret'] as String);
+    } catch (_) {
+      return const DeviceKeyIssue.failed(
+          'Cannot reach the estate server. Check your connection and try again.');
+    }
+  }
+
+  Future<void> revokeDeviceKey(String keyId) async {
+    if (_accessToken == null) return;
+    try {
+      await http.delete(Uri.parse('$_baseUrl/api/v1/auth/device-keys/$keyId'), headers: {
+        'X-App-Id': _appId,
+        'Authorization': 'Bearer $_accessToken'
+      }).timeout(const Duration(seconds: 10));
+    } catch (_) {/* The key also stops working when the password changes. */}
+  }
+
+  /// Sign in with this phone's fingerprint sign-in key.
+  /// `invalidKey` means the server no longer accepts it (password changed, suspended, turned off).
+  Future<Map<String, dynamic>> deviceLogin(
+      {required String appId, required String keyId, required String secret}) async {
+    try {
+      final response = await http
+          .post(Uri.parse('$_baseUrl/api/v1/auth/device-login'),
+              headers: {'Content-Type': 'application/json', 'X-App-Id': appId},
+              body: jsonEncode({'key_id': keyId, 'secret': secret}))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final user = await _adoptSignIn(
+            jsonDecode(response.body) as Map<String, dynamic>, appId);
+        return {'success': true, 'user': user};
+      }
+      final detail = _parseError(response.body)['detail'];
+      return {
+        'success': false,
+        'invalidKey': response.headers['x-device-key'] == 'invalid',
+        'message': detail is String ? detail : 'Fingerprint sign-in failed. Use your password.',
+      };
+    } catch (_) {
+      return {
+        'success': false,
+        'message': 'Cannot reach the estate server. Check your connection and try again.'
       };
     }
   }

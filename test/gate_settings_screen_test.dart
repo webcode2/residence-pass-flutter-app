@@ -24,13 +24,14 @@ void main() {
       'Emergency SOS alerts',
       'Visitor check-in alerts',
       'Resident chat alerts',
-      'Biometric app lock',
       'Duty status',
     ]) {
       expect(find.text(label), findsOneWidget, reason: '$label is guard-relevant');
     }
 
     for (final residentOnly in [
+      'Biometric app lock',
+      'App lock & fingerprint',
       'Gate Arrival Alerts',
       'Visitor Departure Alerts',
       'Unit / House',

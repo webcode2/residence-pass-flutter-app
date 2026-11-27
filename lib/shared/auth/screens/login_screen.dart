@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:estate/shared/auth/auth_service.dart';
+import 'package:estate/shared/auth/device_sign_in.dart';
 import 'package:estate/shared/ui/widgets/auth_layout.dart';
 import 'package:estate/shared/auth/screens/register_screen.dart';
 
@@ -30,9 +31,40 @@ class _LoginScreenState extends State<LoginScreen> {
   // Shown only after the server says this account is suspended (correct password,
   // X-Account-Status: suspended). Never offered to active accounts.
   bool _accountSuspended = false;
+  final _deviceSignIn = DeviceSignIn.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceSignIn.addListener(_remembered);
+    _deviceSignIn.load();
+  }
+
+  /// Prefill the estate and email of the resident remembered for fingerprint sign-in.
+  void _remembered() {
+    final account = _deviceSignIn.remembered;
+    if (!mounted) return;
+    if (account != null && _emailController.text.isEmpty) {
+      _appIdController.text = account.appId;
+      _emailController.text = account.email;
+    }
+    setState(() {});
+  }
+
+  Future<void> _fingerprintSignIn() async {
+    setState(() => _errorMessage = null);
+    final error = await _deviceSignIn.signIn();
+    if (!mounted) return;
+    if (error != null) {
+      setState(() => _errorMessage = error);
+    } else if (AuthService.instance.isAuthenticated) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
 
   @override
   void dispose() {
+    _deviceSignIn.removeListener(_remembered);
     _appIdController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -221,6 +253,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2))
                             : const Text('Sign In')),
+                    if (_deviceSignIn.remembered != null) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                          onPressed: _isLoading || _deviceSignIn.busy
+                              ? null
+                              : _fingerprintSignIn,
+                          icon: const Icon(Icons.fingerprint_rounded),
+                          label: Text(
+                              'Sign in with fingerprint as ${_deviceSignIn.remembered!.firstName}'),
+                          style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(52),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)))),
+                      TextButton(
+                          onPressed: _isLoading || _deviceSignIn.busy
+                              ? null
+                              : () async {
+                                  await _deviceSignIn.forget();
+                                  _emailController.clear();
+                                },
+                          child: const Text('Not you? Use another account')),
+                    ],
                     const SizedBox(height: 12),
                     TextButton(
                         onPressed: _isLoading ? null : _navigateToRegister,

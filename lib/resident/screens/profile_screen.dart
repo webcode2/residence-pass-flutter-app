@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:estate/shared/ui/theme.dart';
 import 'package:estate/shared/account/settings_screen.dart';
 import 'package:estate/resident/screens/visitors_screen.dart';
+import 'package:estate/resident/security/security_settings_screen.dart';
 import 'package:estate/shared/auth/auth_service.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -27,6 +28,10 @@ class ProfileScreen extends StatelessWidget {
         builder: (context) => SettingsScreen(
           isDark: isDark,
           onToggleTheme: onToggleTheme ?? () {},
+          // App lock and fingerprint sign-in are for residents; guard accounts have none.
+          securityTile: AuthService.instance.currentUser?.isGuard == true
+              ? null
+              : const ResidentSecurityTile(),
         ),
       ),
     );
